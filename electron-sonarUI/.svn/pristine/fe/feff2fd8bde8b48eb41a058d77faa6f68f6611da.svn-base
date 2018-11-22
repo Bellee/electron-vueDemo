@@ -1,0 +1,54 @@
+<template>
+  <el-col :span="20">
+    <div id = "list-tab-page">
+      <el-tabs v-model="activeName" @tab-click="handleClick">
+        <el-tab-pane label="全部视频（10）" name="first">
+            <div class="search-input">
+              <el-input
+                placeholder="搜索"
+                icon="search"
+                >
+              </el-input>
+            </div>
+            <file-list></file-list>
+            <file-page></file-page>
+        </el-tab-pane>
+        <el-tab-pane label="未上传（5）" name="second">未上传的</el-tab-pane>
+        <el-tab-pane label="未通过（2）" name="third">
+            <file-list></file-list>
+            <file-page></file-page>
+        </el-tab-pane>
+      </el-tabs>
+    </div>
+  </el-col>
+</template>
+<script>
+  import FileList from '../components/FileList'
+  import FilePage from '../components/FilePage'
+
+  export default {
+    name: 'list-tab',
+    components: {FileList, FilePage},
+    data () {
+      return {
+        activeName: 'first'
+      }
+    },
+    methods: {
+      handleClick (tab, event) {
+        console.log(tab, event)
+      }
+    }
+  }
+</script>
+
+<style scoped>
+#list-tab-page{
+  padding: 20px;
+  background: #fff;
+}
+
+.search-input {
+    float: right;
+  }
+</style>

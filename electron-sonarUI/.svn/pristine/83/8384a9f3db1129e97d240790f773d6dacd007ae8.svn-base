@@ -1,0 +1,23 @@
+<template>
+   <el-upload
+  action="https://jsonplaceholder.typicode.com/posts/"
+  :on-success="handlePreview"
+  multiple>
+  <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+</el-upload>
+</template>
+
+<script>
+export default {
+  data () {
+    return {
+      edit: true
+    }
+  },
+  methods: {
+    handlePreview (res, file, filelist) {
+      console.log(file);
+    }
+  }
+}
+</script>

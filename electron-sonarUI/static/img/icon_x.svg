@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24px" height="24px" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 49.3 (51167) - http://www.bohemiancoding.com/sketch -->
+    <title>icon_x_slice</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Artboard" transform="translate(-1260.000000, -13.000000)" fill="#000000" fill-rule="nonzero">
+            <g id="icon-X" transform="translate(1260.000000, 13.000000)">
+                <rect id="Rectangle-path" opacity="0" x="0" y="0" width="24" height="24"></rect>
+                <polygon id="Shape" points="13.4574018 11.937 21 19.4268 19.6060423 20.748 12.0634441 13.2582 4.3939577 21 3 19.5528 10.6694864 11.811 3.12688822 4.3212 4.52084592 3 12.0634441 10.4898 19.6060423 3 21 4.4472"></polygon>
+            </g>
+        </g>
+    </g>
+</svg>

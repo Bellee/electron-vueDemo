@@ -1,0 +1,55 @@
+ <template>
+   <el-col :span="4">
+    <el-menu
+      default-active="2"
+      class="el-menu-vertical-demo"
+      @open="handleOpen"
+      @close="handleClose"
+      @select="handleSelect"
+      background-color="#efefef"
+      text-color="#000"
+      active-text-color="#67c23a">
+      <el-menu-item index="home">
+          <i class="el-icon-tickets"></i>
+          <span slot="title">首页看板</span>
+      </el-menu-item>
+      <el-menu-item index="upload">
+        <i class="el-icon-upload"></i>
+        <span slot="title">影视管理</span>
+      </el-menu-item>
+      <el-menu-item index="login">
+        <i class="el-icon-document"></i>
+        <span slot="title">视频管理</span>
+      </el-menu-item>
+      <el-menu-item index="4">
+        <i class="el-icon-setting"></i>
+        <span slot="title">数据统计</span>
+      </el-menu-item>
+      <el-menu-item index="5">
+        <i class="el-icon-setting"></i>
+        <span slot="title">我的信息</span>
+      </el-menu-item>
+    </el-menu>
+  </el-col>
+ </template>
+ 
+<script>
+  export default {
+    name: 'bucket-nav',
+    methods: {
+      handleSelect (index) {
+        this.$router.push({
+          name: index
+        })
+      },
+      handleOpen (key, keyPath) {
+        console.log(key, keyPath)
+      },
+      handleClose (key, keyPath) {
+        console.log(key, keyPath)
+      }
+    }
+  }
+</script>
+
+ 

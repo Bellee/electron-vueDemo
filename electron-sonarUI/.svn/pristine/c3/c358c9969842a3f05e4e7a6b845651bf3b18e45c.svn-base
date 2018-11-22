@@ -1,0 +1,50 @@
+ <template>
+   <el-col :span="4">
+    <el-menu
+      default-active="2"
+      class="el-menu-vertical-demo"
+      @open="handleOpen"
+      @close="handleClose"
+      background-color="#efefef"
+      text-color="#000"
+      active-text-color="#67c23a">
+      <el-submenu index="1">
+        <template slot="title">
+          <i class="el-icon-tickets"></i>
+          <span>片源管理</span>
+        </template>
+        <el-menu-item-group>
+          <template slot="title">片源列表</template>
+        </el-menu-item-group>
+      </el-submenu>
+      <el-menu-item index="2">
+        <i class="el-icon-upload"></i>
+        <span slot="title">视频管理</span>
+      </el-menu-item>
+      <el-menu-item index="3">
+        <i class="el-icon-document"></i>
+        <span slot="title">数据管理</span>
+      </el-menu-item>
+      <el-menu-item index="4">
+        <i class="el-icon-setting"></i>
+        <span slot="title">我的消息</span>
+      </el-menu-item>
+    </el-menu>
+  </el-col>
+ </template>
+ 
+<script>
+  export default {
+    name: 'bucket-nav',
+    methods: {
+      handleOpen (key, keyPath) {
+        console.log(key, keyPath)
+      },
+      handleClose (key, keyPath) {
+        console.log(key, keyPath)
+      }
+    }
+  }
+</script>
+
+ 

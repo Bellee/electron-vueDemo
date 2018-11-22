@@ -1,0 +1,156 @@
+<template>
+    <div id="connection">
+         <span class="lauch-upload">
+            <span class="lauch-btn">批量上传</span>
+            <input type="file" multiple="multiple" style="opacity: 0;" @change="showDialog()"/> 
+          </span>
+<el-dialog
+  title="确认关联信息"
+  :visible.sync="dialogVisible"
+  width="60%"
+  center>
+  <span class="connection-file">
+      <el-row>
+          <el-col :span="12">
+              <ul>
+                  <li>视频文件</li>
+                  <li class="part-join">三生三世十里桃花-1</li>
+                  <li class="part-join">三生三世十里桃花-2</li>
+                  <li class="part-join">三生三世十里桃花-3</li>
+                  <li class="part-join">三生三世十里桃花-4</li>
+              </ul>
+          </el-col>
+          <el-col :span="12" style="position: relative">
+              <ul style="float:right">
+                  <li>剧集名称</li>
+                  <li>三生三世十里桃花 第一集<span class=“edit” @click="editpart=true">修改</span></li>
+                  <li>三生三世十里桃花 第二集<span class=“edit” @click="editpart=true">修改</span></li>
+                  <li>三生三世十里桃花 第三集<span class=“edit” @click="editpart=true">修改</span></li>
+                  <li>三生三世十里桃花 第四集<span class=“edit” @click="editpart=true">修改</span></li>
+              </ul>
+              <div class="part-select" v-show="editpart">
+                  <form>
+                    <label><input name="Fruit" type="radio" value="" />三生三世十里桃花第一集 </label> 
+                    <label><input name="Fruit" type="radio" value="" />三生三世十里桃花第一集 </label> 
+                    <label><input name="Fruit" type="radio" value="" />三生三世十里桃花第一集 </label> 
+                    <label><input name="Fruit" type="radio" value="" />三生三世十里桃花第四集</label> 
+                    <label><input name="Fruit" type="radio" value="" />三生三世十里桃花第五集</label> 
+                    <div class="select-btn">
+                    <el-button type="primary" size="mini" @click="editpart=false">确定</el-button>
+                    </div>
+                  </form>
+              </div>
+          </el-col>
+      </el-row>
+  </span>
+  <span slot="footer" class="dialog-footer">
+    <el-button type="primary" @click="dialogVisible = false">确定无误</el-button>
+  </span>
+</el-dialog>
+    </div>  
+</template>
+
+<script>
+export default {
+  name: 'connection',
+  data () {
+    return {
+      dialogVisible: false,
+      editpart: false
+
+    }
+  },
+  methods: {
+    showDialog () {
+      this.dialogVisible = true;
+    }
+  }
+};
+</script>
+
+<style>
+.lauch-upload{
+  position: relative;
+  color: #67c23a;
+  font-size: 15px;
+  height: 40px;
+}
+
+.lauch-upload input{
+  *zoom: 1
+}
+
+.lauch-btn{
+  position: absolute;
+  top:0;
+  left: 10px;
+}
+
+.el-dialog__header{
+    border: #efefef solid 1px;
+}
+
+.connection-file ul{
+    list-style: none;
+    width: 70%;
+    border: #efefef solid 1px;
+    -webkit-padding-start: 0px;
+    
+
+}
+
+.connection-file ul li{
+    height: 40px;
+    position: relative;
+    padding-left:20px;
+}
+
+.connection-file ul li:first-child{
+    border-bottom: 1px solid #efefef;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+}
+
+.connection-file ul .part-join:after{
+    content: "";/*CSS伪类用法*/
+    position: absolute;/*定位背景横线的位置*/
+    width:70%;/*宽和高做出来的背景横线*/
+    height:2px;
+    background:#CCCCCC;
+    top:8px;
+    margin-left: 60px;
+}
+
+.connection-file ul li span{
+    border: #409EFF 1px solid;
+    margin-left: 10px;
+    background: #409EFF;
+    display: inline-block;
+    height: 20px;
+    width: 3vw;
+    text-align: center;
+    border-radius: 4px;
+    color: #fff;
+}
+
+.part-select{
+    position: absolute;
+    top: 5px;
+    right: -200px;
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #efefef;
+}
+
+.part-select label{
+    display: block;
+    height: 30px;
+    line-height: 30px;
+}
+.select-btn{
+    text-align:center;
+    margin-top: 20px;
+}
+</style>
+

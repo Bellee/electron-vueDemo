@@ -1,0 +1,140 @@
+<template>
+  <header style="-webkit-app-region: drag">
+     <div class="Header-control">
+       <span class="goback"></span>
+       <span class="go"></span>
+     </div>
+     <div class="top-bar">
+       <div class="go-home">
+       </div>
+         <el-button class="new-origin" size="small">创建片源</el-button>
+        
+     </div>
+     <div class="leave-btn">
+       <img src="../../../static/img/pictitle.jpg">
+       <span class="picname">momo.zxy</span>
+       <div class="btn-a">
+        <img src="../../../static/img/down.png" v-if="!listSeen" class="img-icon" @click="listSeen = !listSeen">
+        <img src="../../../static/img/up.png" v-if="listSeen" class="img-icon" @click="listSeen = !listSeen">
+      </div>
+
+      <div class="leave" v-show="listSeen">
+        退出
+      </div>
+
+     </div>
+  </header>
+</template>
+
+<script>
+  export default {
+    name: 'bucket-header',
+    data () {
+      return {
+        listSeen: false
+      }
+    }
+  }
+</script>
+
+<style scope>
+  header {
+    position: fixed;
+    z-index: 400;
+    width: 100%;
+    height: 80px;
+    background: #efefef;
+    -webkit-app-region: drag;
+  }
+
+  .Header-control{
+    position: absolute;
+    display: inline-block;
+    top: 40px;
+    left: 20px;
+    overflow: hidden;
+  }
+
+  .Header-control .goback{
+    display: inline-block;
+    width: 25px;
+    height: 20px;
+    background: url('../../../static/img/goback.png') no-repeat center;
+    background-size: 15px 15px;
+    border: 1px solid #888787;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+     
+  }
+
+  .Header-control .go{
+    display: inline-block;
+    width: 25px;
+    height: 20px;
+    background: url('../../../static/img/go.png') no-repeat center;
+    background-size: 15px 15px;
+    border: 1px solid #888787;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+  }
+
+  .top-bar{
+    width: 100%;
+    height: 40px;
+    padding-left: 16vw;
+    margin-top: 30px;
+  }
+
+  .go-home{
+    background: url('../../../static/img/home.png') no-repeat bottom center;
+    background-size: 30px 30px;
+    display: inline-block;
+    width: 5vw;
+    height: 30px;
+    vertical-align: bottom;
+  }
+
+  .new-origin{
+    margin-left: 5vw;
+    background: #67c23a;
+    color: #fff;
+  }
+
+  .leave-btn{
+    position: absolute;
+    display: inline-block;
+    top: 20px;
+    right: 20px;
+  }
+
+  .leave-btn img{
+    width: 40px;
+    height: 40px;
+    border-radius: 45px;
+    vertical-align: middle;
+  }
+
+  .leave-btn picname{
+    vertical-align: middle;
+  }
+
+  .btn-a{
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: middle;
+  }
+
+  .btn-a img{
+    width: 25px;
+    height: 25px;
+  }
+
+  .leave{
+    background: #888787;
+    text-align: center;
+    height: 30px;
+    line-height: 30px;
+  }
+
+
+</style>

@@ -1,0 +1,38 @@
+import Vue from 'vue'
+import Router from 'vue-router'
+
+Vue.use(Router)
+
+export default new Router({
+  routes: [
+    {
+      path: '/landing-page',
+      name: 'landing-page',
+      component: require('@/components/LandingPage')
+    },
+    {
+      path: '/upload',
+      name: 'upload',
+      component: require('@/pages/Upload').default
+    },
+    {
+      path: '/uploaddemo',
+      name: 'uploaddemo',
+      component: require('@/pages/UploadDemo').default
+    },
+    {
+      path: '/',
+      name: 'login',
+      component: require('@/pages/Login').default
+    },
+    {
+      path: '/home',
+      name: 'home',
+      component: require('@/pages/Home').default
+    },
+    {// 路由重定向
+      path: '*',
+      redirect: '/'
+    }
+  ]
+})
