@@ -1,0 +1,197 @@
+<template>
+    <div id="loginForm">
+     <p class="logintTitle">唢呐网络科技欢迎您</p>
+     <div>
+       <p class="formTitle">账户密码登陆</p>
+       <el-form style="center">
+        <el-form-item>
+          <input class="user" placeholder="账户" v-model="account.loginName">
+        </el-form-item>
+        <el-form-item>
+          <input class="password" placeholder="密码" v-model="account.password">
+        </el-form-item>
+        <el-form-item >
+          <div class="re-password">
+            <input type="checkbox" v-model="account.autoLogin">自动登录
+            <div class="show-box" @click="account.autoLogin=!account.autoLogin"></div>
+          </div>
+        </el-form-item>
+        <el-button type="success" plain class="login" @click="login()">登录</el-button>
+       </el-form>
+     </div>
+  </div>
+</template>
+
+<script>
+import {get, post, httpRequestConstant} from '../../main/utils/httpClient'
+import { triggerAsyncId } from 'async_hooks'
+const BrowserWindow = require('electron').remote.BrowserWindow
+const window = BrowserWindow.getFocusedWindow()
+export default {
+  name: 'login-form',
+  data () {
+    return {
+      account: {
+        loginName: '',
+        password: '',
+        autoLogin: false
+      }
+    }
+  },
+  methods: {
+    login () {
+      let account = this.account
+      let _this = this
+      // todo:check account
+      const config = {
+        json: true,
+        url: 'serverUrl'
+      }
+      get(config, function () {
+        _this.loginSuccess()
+        console.log('success')
+      }, function() {
+        // 提示
+        console.log('fail')
+        _this.loginSuccess()
+      })
+      // console.log(httpRequestConstant)
+      // console.log(account)
+    },
+    loginSuccess () {
+      this.$router.push({
+        name: 'upload'
+      })
+    },
+    upload() {
+      // window.open(this.$router);
+      const win = new BrowserWindow({
+        height: 750,
+        useContentSize: true,
+        width: 1300,
+        titleBarStyle: 'hiddenInset',
+        backgroundColor: '#fff'
+      })
+      const winURL = process.env.NODE_ENV === 'development'
+        ? 'http://localhost:9080'
+        : `file://${__dirname}/index.html`
+      win.loadURL(`${winURL}#/upload`)
+      // 关闭旧的窗口
+      window.close()
+    }
+  }
+}
+</script>
+<style scoped>
+  #loginForm{
+    text-align: center;
+    padding-top:50px;
+  }
+
+  .logintTitle{
+    letter-spacing: 10px;
+    font-size: 30px;
+    color:#cdf3bb;
+  }
+
+  .formTitle{
+    color:#67c23a;
+    display: inline-block;
+    width: 15vw;
+    border-bottom:#67c23a 2px solid;
+    height: 40px;
+    line-height: 40px;
+    margin-bottom: 30px;
+  }
+
+  .user{
+     background: url('../../../static/img/user.png') no-repeat 10px center;
+     background-size: 15px 15px;
+  }
+
+  .password{
+    background: url('../../../static/img/password.png') no-repeat 10px center;
+     background-size: 15px 15px;
+  }
+
+  .user,.password{
+    padding: 0 30px;
+    -webkit-appearance: none;
+    background-color: #fff;
+    border-radius: 4px;
+    border: 1px solid #dcdfe6;
+    box-sizing: border-box;
+    color: #606266;
+    display: inline-block;
+    font-size: inherit;
+    height: 40px;
+    line-height: 40px;
+    outline: 0;
+    transition: border-color .2s cubic-bezier(.645,.045,.355,1);
+    width: 55vw;
+  }
+
+  .password:focus{
+    border-color: #67c23a;
+    outline: 0;
+    background: url('../../../static/img/password-active.png') no-repeat 10px center;
+    background-size: 15px 15px;
+  }
+
+  .user:focus{
+    border-color: #67c23a;
+    outline: 0;
+    background: url('../../../static/img/user-active.png') no-repeat 10px center;
+    background-size: 15px 15px;
+  }
+
+  .re-password{
+    display: inline-block;
+    width: 55vw;
+    text-align: left;
+    position: relative;
+  }
+
+  .re-password{
+    color:#606266;    
+  }
+
+  .re-password input{
+    margin-left: 10px;
+    opacity: 0;
+  }
+
+  .login{
+    width: 55vw
+  }
+  
+  input:checked + .show-box {
+    background: #67c23a;
+  }
+
+  .show-box {
+    position: absolute;
+    top: 10px;
+    left: 0;
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    border: 1px solid #d8d8d8;
+    background: white;  
+  }
+
+    .show-box:before {  
+      content: '';  
+      position: absolute;
+      top: 2px;
+      left: 6px;
+      width: 3px;  
+      height: 8px;  
+      border: solid white;  
+      border-width: 0 2px 2px 0;  
+      transform: rotate(45deg); 
+    }
+  
+</style>
+
+ 

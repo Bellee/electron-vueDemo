@@ -1,0 +1,182 @@
+ <template>
+ <div>
+    <bucket-header ></bucket-header>
+    <el-row style="">
+      <el-col id="bucket-nav">
+        <el-menu
+          class="el-menu-vertical-demo"
+          background-color="#efefef"
+          text-color="#000"
+          active-text-color="#fff"
+          @select="handleSelect">
+          <el-menu-item index="home" >
+              <i class="icon-home"></i>
+              <span slot="title">首页看板</span>
+          </el-menu-item>
+          <el-menu-item index="login">
+            <i class="icon-yingshi"></i>
+            <span slot="title">影视管理</span>
+          </el-menu-item>
+          <el-menu-item index="upload">
+            <span class="icon-shiping"></span>
+            <span slot="title">视频管理</span>
+          </el-menu-item>
+          <el-menu-item index="4">
+            <span class="icon-data"></span>
+            <span slot="title">数据统计</span>
+          </el-menu-item>
+          <el-menu-item index="5">
+            <span class="icon-me"></span>
+            <span slot="title">我的信息</span>
+          </el-menu-item>
+        </el-menu>
+      </el-col>
+      <router-view></router-view>
+    </el-row>
+ </div>
+ </template>
+ 
+<script>
+ import ListTab from '../components/ListTab'
+ export default {
+   name: 'bucket-nav',
+   components: {ListTab},
+   methods: {
+     handleSelect (index) {
+       this.$router.push({
+         name: index,
+         query: {producerId: this.producerId}
+       })
+     }
+   }
+ }
+</script>
+
+<style>
+#bucket-nav{
+  position: fixed;
+  left: 0;
+  top: 4.75rem;
+  width: 6.66rem;
+  overflow: hidden;
+  height: 100%;
+  background: #efefef;
+  z-index: 999;
+}
+
+#bucket-nav li{
+  padding-left: 1.66rem !important;
+}
+
+#router-view{
+  min-width:1300px;
+  background: #fff;
+}
+
+.icon-home{
+    display: inline-block;
+    width: 0.66rem;
+    height: 0.66rem;
+    background: url('../../../static/img/icon_home.svg') no-repeat center;
+    background-size: 0.66rem 0.66rem;
+    margin-right: 0.33rem;
+}
+
+.icon-yingshi{
+    display: inline-block;
+    width: 0.66rem;
+    height: 0.66rem;
+    background: url('../../../static/img/icon_yingshi.svg') no-repeat center;
+    background-size: 0.66rem 0.66rem;
+    margin-right: 0.33rem;
+}
+
+.icon-shiping{
+    display: inline-block;
+    width: 0.66rem;
+    height: 0.66rem;
+    background: url('../../../static/img/icon_shiping.svg') no-repeat center;
+    background-size: 0.66rem 0.66rem;
+    margin-right: 0.33vw;
+}
+
+.icon-data{
+    display: inline-block;
+    width: 0.66rem;
+    height: 0.66rem;
+    background: url('../../../static/img/icon_data.svg') no-repeat center;
+    background-size: 0.66rem 0.66rem;
+    margin-right: 0.33rem;
+}
+.icon-me{
+    display: inline-block;
+    width: 0.66rem;
+    height: 0.66rem;
+    background: url('../../../static/img/icon_me.svg') no-repeat center;
+    background-size: 0.66rem 0.66rem;
+    margin-right: 0.33rem;
+}
+
+.el-menu-item, .el-submenu__title{
+  height: 2.9rem;
+  line-height: 2.9rem;
+}
+
+.el-menu-item.is-active {
+   background-color: #64A3FF !important;
+   color:#fff !important;
+}
+
+.el-menu-item.is-active .icon-home{
+  background: url('../../../static/img/icon_home_white.svg') no-repeat center;
+}
+
+.el-menu-item.is-active .icon-yingshi{
+  background: url('../../../static/img/icon_yingshi_white.svg') no-repeat center;
+}
+
+.el-menu-item.is-active .icon-shiping{
+  background: url('../../../static/img/icon_shiping_white.svg') no-repeat center;
+}
+
+.el-menu-item.is-active .icon-data{
+  background: url('../../../static/img/icon_data_white.svg') no-repeat center;
+}
+
+.el-menu-item.is-active .icon-me{
+  background: url('../../../static/img/icon_me_white.svg') no-repeat center;
+}
+
+/*鼠标hover时变色*/
+.el-menu-item:hover .icon-home{
+  background: url('../../../static/img/icon_home_white.svg') no-repeat center;
+}
+
+.el-menu-item:hover .icon-yingshi{
+  background: url('../../../static/img/icon_yingshi_white.svg') no-repeat center;
+}
+
+.el-menu-item:hover .icon-shiping{
+  background: url('../../../static/img/icon_shiping_white.svg') no-repeat center;
+}
+
+.el-menu-item:hover .icon-data{
+  background: url('../../../static/img/icon_data_white.svg') no-repeat center;
+}
+
+.el-menu-item:hover .icon-me{
+  background: url('../../../static/img/icon_me_white.svg') no-repeat center;
+}
+
+.el-menu-item:hover{
+  background-color: #64A3FF !important;
+  color:#fff !important;
+}
+
+.el-menu-item:focus{
+  background-color: #64A3FF !important;
+  color:#fff !important;
+}
+</style>
+
+ 

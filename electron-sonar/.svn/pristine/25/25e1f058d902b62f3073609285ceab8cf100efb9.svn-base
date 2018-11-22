@@ -1,0 +1,171 @@
+<template>
+  <div class="header-bucket" style="-webkit-app-region: drag">
+    <div class="header-btn"><i @click="leavex()"></i></div>
+    <div class="header">
+     <div class="header-logo"><i></i></div>
+     <span class="goback" @click="goback()"></span>
+     <span class="go" @click="go()"></span>
+      <div class="header-title">
+        <span class="header-company">
+          {{producerName}}
+        </span>
+        <span class="header-user">
+          {{selectuserName}}
+        </span>
+        <span class="header-leave" @click="leave()">
+          退出
+        </span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import {get, post, httpRequestConstant} from '../../actions/utils/httpClient'
+import server from '../../actions/config/server'
+const BrowserWindow = require('electron').remote.BrowserWindow
+const window = BrowserWindow.getFocusedWindow()
+export default {
+  name: 'bucket-header',
+  props: ['message'],
+  created() {
+    this.producerName = this.producerName.replace(/\,/g, '#')
+  },
+  data () {
+    return {
+      listSeen: false,
+      opop: this.$route.query.opop,
+      producerId: this.$route.query.producerId,
+      selectuserName: this.$route.query.selectuserName,
+      producerName: this.$route.query.producerName
+    }
+  },
+  methods: {
+    goback: function() {
+      this.$router.go(-1)
+    },
+    go: function() {
+      this.$router.go(1)
+    },
+    leavex: function() {
+      const window = BrowserWindow.getFocusedWindow()
+      window.close()
+    },
+    leave: function() {
+      const win = new BrowserWindow({
+        height: 672,
+        useContentSize: true,
+        width: 496,
+        titleBarStyle: 'default',
+        fullscreenable: false, // 是否允许全屏
+        resizable: false
+
+      })
+      const winURL = process.env.NODE_ENV === 'development'
+        ? 'http://localhost:9080'
+        : `file://${__dirname}/index.html`
+      win.loadURL(`${winURL}#/login`)
+      // 关闭旧的窗口
+      window.close()
+    }
+  }
+}
+</script>
+
+<style>
+  .header-bucket {
+    position: fixed;
+    z-index: 400;
+    width: 100%;
+    min-width: 1300px;
+    background: #fff;
+    -webkit-app-region: drag;
+    border-bottom:#bbbaba solid 1px;
+  }
+
+  .header-btn{
+    width: 100%;
+    background:#f0f0f0;
+    height: 2rem;
+  }
+
+  .header-btn i{
+    float: right;
+    display: block;
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.66rem;
+    margin-top: 0.54rem;
+    background: url('../../../static/img/icon_x.svg') no-repeat center center;
+    background-size: 1rem 1rem;
+  }
+
+  .header{
+    height: 2.66rem;
+  }
+
+  .header-logo,.header-company,.header-user,.header-leave{
+    height: 2.66rem;
+    line-height: 2.66rem;
+  }
+
+  .header-logo{
+    display: inline-block;
+    width: 6.66rem;
+  }
+
+  .header-logo i{
+    display: inline-block;
+    width: 6.66rem;
+    height: 2.66rem;
+    background: url('../../../static/img/company.jpg') no-repeat 1.33rem center;
+    background-size: 4.2rem 1.54rem;
+  }
+
+  .header-title{
+    float: right;
+    margin-right: 1.33rem;
+  }
+
+  .header-control{
+    display: inline-block;
+  }
+
+  .header-company{
+    color: #333333;
+    font-size: 0.75rem;
+    font-weight: Medium;
+  }
+
+  .header-user{
+    font-size: 0.58rem;
+    color: #333333;
+    font-weight: Medium;
+    margin-left: 1.33rem;
+  }
+
+  .header-leave{
+    font-size: 0.58rem;
+    color: #666666;
+    margin-left: 2.58rem;
+  }
+
+ .goback{
+    display: inline-block;
+    width: 1rem;
+    height: 2.66rem;
+    background: url('../../../static/img/icon_left_circle.svg') no-repeat center center;
+    background-size: 1rem 1rem;
+    margin-left: 1.33rem;
+  }
+
+  .go{
+    display: inline-block;
+    width: 1rem;
+    height: 2.66rem;
+    background: url('../../../static/img/icon_right_circle.svg') no-repeat center center;
+    background-size: 1rem 1rem;
+    margin-left: 1.33rem;
+  }
+
+</style>

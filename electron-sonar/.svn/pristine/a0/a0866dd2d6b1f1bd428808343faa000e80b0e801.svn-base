@@ -1,0 +1,74 @@
+<template>
+    <div class="block" id="file-page">
+    <div style="float:right;">
+    <el-pagination
+      :current-page.sync="currentPage"
+      @current-change="handleCurrentChange"
+      @size-change="handleSizeChange"
+      :page-sizes="[10, 20, 30, 40]"
+      :page-size.sync="currentSize"
+      layout="sizes, prev, pager, next"
+      :total="message"
+      >
+    </el-pagination>
+    <input class="page" type="text" placeholder="5" v-model="goPage"/><label>页</label>
+    <button class="page-go" @click="handleGo(goPage)">跳转</button>
+    </div>
+  </div>
+</template>
+
+<script>
+  export default {
+    name: 'file-page',
+    methods: {
+      handleCurrentChange(data) {
+        this.$emit('childByValue', data, this.currentSize)
+      },
+      handleSizeChange(data) {
+        this.$emit('childByValue', this.currentPage, data)
+      },
+      handleGo(goPage) {
+        this.$emit('childByValue', goPage, this.currentSize)
+        this.currentPage = parseInt(goPage)
+      }
+    },
+    props: ['message'],
+    data () {
+      return {
+        currentPage: 5,
+        currentSize: 10,
+        goPage: 1
+      }
+    }
+  }
+</script>
+ 
+<style>
+.el-pagination{
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.page{
+  width: 1.4rem;
+  height: 1rem;
+  line-height: 1rem;
+  margin-right: 0.42rem;
+  border-radius:4px;
+}
+
+label{
+  font-size: 0.5rem;
+}
+
+.page-go{
+  width: 1.66rem;
+  height: 1rem;
+  background-color: #64A3FF;
+  border: 1px solid #64A3FF;
+  border-radius:4px;
+  color: #fff;
+  font-size: 0.5rem;
+  margin-left: 0.42rem;
+}
+</style>

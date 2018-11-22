@@ -1,0 +1,265 @@
+<template>
+    <div id="file-wait-page">
+    <el-table
+        :data="fileWait"
+        style="width: 100%"
+        stripe
+        :header-cell-style="getRowClass"
+        @selection-change="changeFun"
+        >
+        <el-table-column
+        type="selection"
+        width="40">
+        </el-table-column>
+        <el-table-column
+        prop="name"
+        label="片源名称"
+        width="">
+         <template slot-scope="scope">
+            <p>{{scope.row.projectName}}</p>
+        </template>
+        </el-table-column>
+        <el-table-column
+        prop="divname"
+        label="分集名称"
+        width="">
+         <template slot-scope="scope">
+              <div v-if="!scope.row.edit" @click="penEdit(scope.$index, scope.row)">
+                <p>{{scope.row.episodeName}}</p>
+                <span class="i-icon">修改</span>
+              </div>
+              <div class="form-group" v-if="scope.row.edit">
+                <div class="input-group">
+                  <el-input size="small" v-model="scope.row.episodeName"></el-input>
+                </div>
+                <span class="preserve" @click="penEdit(scope.$index, scope.row)">保存</span>
+              </div>
+        </template>
+        </el-table-column> 
+        <el-table-column
+        label="操作"
+        width="100"
+        >
+        <template slot-scope="scope">
+          <p class="operate">
+            上传
+            <input type="file" ref="uploaFile" @change="getfilePath($event)"/>
+          </p>
+        </template>
+        </el-table-column>
+    </el-table>
+    <file-page :message="total" v-on:childByValue="childByValue"></file-page>
+    </div>
+</template>
+
+<style>
+  .el-table .warning-row {
+    background: #efefef;
+  }
+
+  .el-table .success-row {
+    background: #efefef;
+  }
+</style>
+
+<script>
+import {get, post, httpRequestConstant} from '../../actions/utils/httpClient'
+import FilePage from '../components/FilePage'
+import mockdata from '@/scripts/mockdata.js'
+import Bus from '../../actions/utils/bus'
+import { resolve } from 'url'
+import server from '../../actions/config/server'
+export default {
+  name: 'file-wait',
+  components: {FilePage},
+  data () {
+    return {
+      fileWait: [],
+      total: 0,
+      rows: '',
+      cPage: 1,
+      csize: 10,
+      filePath: '',
+      oldepisodeName: []
+    }
+  },
+  created() {
+    // let response = []
+    console.log('woshiwait')
+    var _this = this
+    console.log(server.host + server.api.api_episode_list + '?page=' + _this.cPage + '&rows=' + _this.csize)
+    get({
+      json: true,
+      url: server.host + server.api.api_episode_list + '?page=' + _this.cPage + '&rows=' + _this.csize
+    }, function(response) {
+      console.log(response)
+      _this.total = response.data.total
+      _this.fileWait = response.data.rows
+      console.log(_this.total)
+      for (var i = 0; i < _this.fileWait.length; i++) {
+        _this.$set(_this.fileWait[i], 'edit', false)
+        _this.$set(_this.fileWait[i], 'stop', false)
+        // this.$set(this.fileList[i], 'againa', '0')
+        _this.fileWait[i].againa = '0'
+      }
+    }, function(fail) {
+      console.log(fail)
+    })
+  },
+  filters: {
+    Status: function(data) {
+      switch (data) {
+        case 'A': return '待审核'
+        case 'B': return '审核通过'
+        case 'C': return '审核不通过'
+      }
+    },
+    Color: function(data) {
+      switch (data) {
+        case 'A': return 'background:red'
+        case 'B': return 'background:yellow'
+        case 'C': return 'background:green'
+      }
+    }
+  },
+  methods: {
+    getRowClass({ row, column, rowIndex, columnIndex }) {
+      if (rowIndex == 0) {
+        return 'background:#EFEFEF'
+      } else {
+        return ''
+      }
+    },
+    changeFun(val) {
+      this.multipleSelection = val
+      Bus.$emit('test', this.multipleSelection)
+      // console.log(this.multipleSelection)
+    },
+    handleEdit (index, row) {
+      console.log(row)
+      console.log(index)
+      this.fileWait[index].stop = !this.fileWait[index].stop
+    },
+    penEdit (index, row) {
+      console.log(row)
+      console.log(index)
+      let _this = this
+      _this.fileWait[index].edit = !_this.fileWait[index].edit
+      if (_this.fileWait[index].edit == false) {
+        let episodeName = encodeURIComponent(_this.fileWait[index].episodeName)
+        let episodeId = _this.fileWait[index].projectEpisodeId
+        let projectId = _this.fileWait[index].projectId
+        console.log(episodeName)
+        console.log(episodeId)
+        console.log(projectId)
+        get({
+          json: true,
+          url: server.host + server.api.api_episode_updateEpisodeName + '?episodeName=' + episodeName + '&episodeId=' + episodeId + '&projectId=' + projectId
+        }, function(response) {
+          // 数据库中有两条相同数据冲突返回fail提示
+          if (response.result == 'fail') {
+            let message = response.message
+            _this.$message({
+              showClose: true,
+              message: message
+            })
+            // 并将原数据绑定在input框中
+            _this.fileWait[index].episodeName = _this.oldepisodeName[index]
+          }
+          console.log(response)
+        }, function(fail) {
+          console.log(fail)
+        })
+      } else {
+        // 点击修改时用数组暂存episodeName剧集名称
+        _this.oldepisodeName[index] = _this.fileWait[index].episodeName
+      }
+    },
+    getfilePath() {
+      let _this = this
+      let files = event.target.files
+      if (!files.length) {
+        this.fileName = ''
+        return
+      }
+      _this.filePath = files[0].path
+      console.log(_this.filePath)
+
+      this.$refs.uploaFile.value = null
+    },
+    childByValue: function (currentPage, currentSize) {
+      // childValue就是子组件传过来的值
+      this.cPage = currentPage
+      this.csize = currentSize
+      // console.log(this.cPage)
+      // console.log(this.csize)
+      var _this = this
+      get({
+        json: true,
+        url: server.host + server.api.api_episode_list + '?page=' + _this.cPage + '&rows=' + _this.csize
+      }, function(response) {
+        console.log(response)
+        _this.total = response.data.total
+        _this.fileWait = response.data.rows
+        // console.log(_this.total)
+        for (var i = 0; i < _this.fileWait.length; i++) {
+          _this.$set(_this.fileWait[i], 'edit', false)
+          _this.$set(_this.fileWait[i], 'stop', false)
+          // this.$set(this.fileList[i], 'againa', '0')
+          _this.fileWait[i].againa = '0'
+        }
+      })
+    }
+
+  }
+}
+</script>
+
+<style scoped>
+   .operate{
+     position: relative;
+   }
+
+   .operate input{
+     opacity: 0;
+     position: absolute;
+     top: 0rem;
+     left: 0rem;
+
+   }
+
+   .i-icon{
+    display: inline-block;
+    font-size: 0.58rem;
+    color: #64A3FF;
+    margin-left: 0.42rem;
+  }
+
+  p{
+    display: inline-block;
+  }
+  
+  .form-group{
+    height: 1.33rem;
+    line-height: 1.33rem;
+  }
+
+  .input-group{
+    margin-right: 0.42rem;
+    width: 5.88rem;
+    display: inline-block;
+    }
+
+  .preserve{
+      color: #64A3FF;
+    }
+
+  .progress{
+    width: 10rem;
+    display: inline-block;
+  }
+
+  .operate{
+    color: #64A3FF;
+  }
+</style>

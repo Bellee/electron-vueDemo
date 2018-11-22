@@ -1,0 +1,61 @@
+<template>
+    <div class="block" id="file-page">
+    <div style="float:right;">
+    <el-pagination
+      :current-page.sync="currentPage"
+      :page-sizes="[100, 200, 300, 400]"
+      :page-size="100"
+      layout="sizes, prev, pager, next"
+      :total="1000">
+    </el-pagination>
+    <input class="page" type="text"/><label>页</label>
+    <button class="page-go">跳转</button>
+    </div>
+  </div>
+</template>
+
+<script>
+  export default {
+    name: 'file-page',
+    data () {
+      return {
+        currentPage: 5
+      }
+    }
+  }
+</script>
+ 
+<style>
+#file-page{
+  position: fixed;
+  bottom: 2.5vw;
+  right: 2.5vw;
+}
+
+.el-pagination{
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.page{
+  width: 2.6vw;
+  height: 24px;
+  line-height: 24px;
+  margin-right: 10px;
+}
+
+label{
+  font-size: 12px;
+}
+
+.page-go{
+  width: 3vw;
+  height: 24px;
+  background-color: #64A3FF;
+  border: 1px solid #64A3FF;
+  border-radius:4px;
+  color: #fff;
+  font-size: 12px;
+  margin-left: 10px;
+}
+</style>

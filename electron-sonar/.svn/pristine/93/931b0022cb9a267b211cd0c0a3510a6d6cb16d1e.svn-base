@@ -1,0 +1,130 @@
+<template>
+  <el-row class="header" style="-webkit-app-region: drag">
+     <el-col :span="4" class="header-title">唢呐科技</el-col>
+      <el-col :span="12" class="header-control">
+        <span class="goback"></span>
+        <span class="go"></span>
+      </el-col>
+      <el-col class="header-company" :span="4">
+        爱奇艺影视制片公司
+      </el-col>
+      <el-col class="header-user" :span="2">
+        momo.zxy
+      </el-col>
+      <el-col class="header-leave" :span="2">
+        退出
+      </el-col>
+       
+  </el-row>
+</template>
+
+<script>
+  export default {
+    name: 'bucket-header',
+    data () {
+      return {
+        listSeen: false
+      }
+    }
+  }
+</script>
+
+<style scope>
+  .header {
+    position: fixed;
+    z-index: 400;
+    width: 100%;
+    height: 60px;
+    background: #efefef;
+    -webkit-app-region: drag;
+    border-bottom:#bbbaba solid 1px;
+  }
+
+  .header-title,.header-company,.header-user,.header-leave{
+    height: 60px;
+    line-height: 60px;
+  }
+
+  .header-title{
+    color:#3e9215;
+    font-size: 20px;
+    font-weight: bold;
+    padding-left: 3vw;
+  }
+
+  .header-control{
+    height: 60px;
+    padding-top:20px;
+  }
+
+  .header-company{
+    color: #67c23a;
+  }
+
+  .header-leave{
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .header-control .goback{
+    display: inline-block;
+    width: 35px;
+    height: 28px;
+    background: url('../../../static/img/goback.png') no-repeat center;
+    background-size: 18px 18px;
+    border: 1px solid #acabab;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    background-color: rgb(250, 249, 249);
+     
+  }
+
+  .header-control .go{
+    display: inline-block;
+    width: 35px;
+    height: 28px;
+    background: url('../../../static/img/go.png') no-repeat center;
+    background-size: 18px 18px;
+    border: 1px solid #acabab;
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+    background-color: rgb(250, 249, 249);
+  }
+  .leave-btn{
+    position: absolute;
+    display: inline-block;
+    top: 20px;
+    right: 20px;
+  }
+
+  .leave-btn img{
+    width: 40px;
+    height: 40px;
+    border-radius: 45px;
+    vertical-align: middle;
+  }
+
+  .leave-btn picname{
+    vertical-align: middle;
+  }
+
+  .btn-a{
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: middle;
+  }
+
+  .btn-a img{
+    width: 25px;
+    height: 25px;
+  }
+
+  .leave{
+    background: #888787;
+    text-align: center;
+    height: 30px;
+    line-height: 30px;
+  }
+
+
+</style>

@@ -1,0 +1,204 @@
+<template>
+    <div id="file-unpass-page"> 
+    <!--上传中-->
+    <el-table
+        :data="fileUnpass"
+        style="width: 100%"
+        stripe
+        :header-cell-style="getRowClass">
+        <el-table-column
+        prop="name"
+        label="片源名称"
+        width="">
+         <template slot-scope="scope">
+          <p>{{scope.row.projectName}}</p>
+        </template>
+        </el-table-column>
+        <el-table-column
+        prop="divname"
+        label="分集名称"
+        width="">
+         <template slot-scope="scope">
+            <div v-if="!scope.row.edit" @click="penEdit(scope.$index, scope.row)">
+              <p>{{scope.row.episodeName}}</p>
+              <span class="i-icon">修改</span>
+            </div>
+            <div class="form-group" v-if="scope.row.edit">
+              <div class="input-group">
+                <el-input size="small" v-model="scope.row.episodeName"></el-input>
+              </div>
+              <span class="preserve" @click="penEdit(scope.$index, scope.row)">保存</span>
+            </div>
+        </template>
+        </el-table-column>      
+        <el-table-column
+        prop="refuse"
+        label="拒绝原因"
+        width=""
+        align="center"
+        class-name="refuse">
+         <template slot-scope="scope">
+          <p class="refuse">视频不清晰</p>
+         </template>
+        </el-table-column>
+        <el-table-column
+        label="操作"
+        width="120">
+        <template slot-scope="scope">
+          <p class="operate" v-if="!scope.row.stop"  @click="handleEdit(scope.$index, scope.row)">重新上传</p>
+          <p class="operate" v-if="scope.row.stop" @click="handleEdit(scope.$index, scope.row)">暂停</p>
+        </template>
+        </el-table-column>
+    </el-table>
+    <file-page :message="total" v-on:childByValue="childByValue"></file-page>
+    </div>
+</template>
+
+<style>
+  .el-table .warning-row {
+    background: #efefef;
+  }
+
+  .el-table .success-row {
+    background: #efefef;
+  }
+</style>
+
+<script>
+import mockdata from '@/scripts/mockdata.js'
+import FilePage from '../components/FilePage'
+export default {
+  name: 'file-unpass',
+  components: {FilePage},
+  data () {
+    return {
+      fileUnpass: [],
+      total: 0,
+      fileUnpass1: [{
+        name: '复仇者联盟',
+        part: '第一集',
+        divname: '待审核',
+        refuse: '视频不清晰',
+        reason: '',
+        stop: true,
+        edit: false,
+        progressStatus: '切片失败'
+      }, {
+        name: '三生三世十里桃花第一集',
+        part: '第二集',
+        divname: '王小虎',
+        refuse: '视频不清晰',
+        reason: '',
+        stop: false,
+        edit: true,
+        progressStatus: '转码失败'
+      }, {
+        name: '三生三世十里桃花第一集',
+        part: '第三集',
+        divname: '王小虎',
+        refuse: '视频不清晰',
+        reason: '',
+        stop: true,
+        edit: false,
+        progressStatus: '音频提取失败'
+      }
+      ]
+    }
+  },
+  created() {
+    new Promise((resolve, reject) => {
+      this.fileUnpass = mockdata.data.datas.rows// 直接点出你生成的假数据对象即可
+      this.total = mockdata.data.datas.total
+      for (var i = 0; i < this.fileUnpass.length; i++) {
+        this.$set(this.fileUnpass[i], 'edit', false)
+        this.$set(this.fileUnpass[i], 'stop', false)
+      }
+    }).catch(err => {
+      console.log(err)
+    })
+  },
+  filters: {
+    Status: function(data) {
+      switch (data) {
+        case 'A': return '待审核'
+        case 'B': return '审核通过'
+        case 'C': return '审核不通过'
+      }
+    },
+    Color: function(data) {
+      switch (data) {
+        case 'A': return 'background:red'
+        case 'B': return 'background:yellow'
+        case 'C': return 'background:green'
+      }
+    }
+  },
+  methods: {
+    getRowClass({ row, column, rowIndex, columnIndex }) {
+      if (rowIndex == 0) {
+        return 'background:#EFEFEF'
+      } else {
+        return ''
+      }
+    },
+    handleEdit (index, row) {
+      console.log(row)
+      console.log(index)
+      this.fileUnpass[index].stop = !this.fileUnpass.stop
+    },
+    penEdit (index, row) {
+      console.log(row)
+      console.log(index)
+      this.fileUnpass[index].edit = !this.fileUnpass[index].edit
+    },
+    childByValue: function (currentPage) {
+      // childValue就是子组件传过来的值
+      this.name = currentPage
+      console.log(this.name)
+    }
+
+  }
+}
+</script>
+
+<style scoped>
+  .i-icon{
+    display: inline-block;
+    font-size: 0.58rem;
+    color: #64A3FF;
+    margin-left: 0.42rem;
+  }
+
+  p{
+    display: inline-block;
+  }
+  
+  .form-group{
+    height: 1.33rem;
+    line-height: 1.33rem;
+  }
+
+  .input-group{
+    margin-right: 0.42rem;
+    width: 5.88rem;
+    display: inline-block;
+    }
+
+  .preserve{
+    color: #64A3FF;
+  }
+
+  .operate{
+    color: #64A3FF;
+  } 
+
+  .progress{
+    width:10rem;
+    display: inline-block;
+  }
+  
+  .refuse {
+    color:red;
+  }
+   
+</style>

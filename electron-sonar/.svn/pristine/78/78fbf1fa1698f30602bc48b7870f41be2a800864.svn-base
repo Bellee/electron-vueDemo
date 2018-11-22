@@ -1,0 +1,204 @@
+<template>
+    <div id="file-unusual-page"> 
+    <!--上传中-->
+    <el-table
+        :data="tableData2"
+        style="width: 100%"
+        stripe
+        :header-class-name="tableRowClassName">
+        <el-table-column
+        prop="name"
+        label="片源名称"
+        width="250">
+         <template scope="scope">
+          <p>{{scope.row.name}}</p>
+        </template>
+        </el-table-column>
+        <el-table-column
+        prop="divname"
+        label="分集名称"
+        width="320">
+         <template scope="scope">
+            <div v-if="!scope.row.edit" @click="penEdit(scope.$index, scope.row)">
+              <p>{{scope.row.part}}</p>
+              <i class="edit-icon i-icon"></i>
+            </div>
+            <div class="form-group" v-if="scope.row.edit">
+              <el-col :span="16"  class="input-group">
+                <el-input size="small" placeholder="修改分集名称"></el-input>
+              </el-col>
+              <el-button @click="penEdit(scope.$index, scope.row)" type="success" class="el-button--mini">保存</el-button>
+            </div>
+        </template>
+        </el-table-column>      
+        <el-table-column
+        prop="status"
+        label="状态"
+        width="160"
+        align="center">
+        </el-table-column>
+        <el-table-column
+        prop="reason"
+        label="进度"
+        width="350">
+        <template scope="scope" style="position: relative;">
+            <div class="progress-status" @click="scope.row.stepsVisible=!scope.row.stepsVisible" v-bind:style="{left: scope.row.leftData + 'px'}">{{scope.row.progressStatus}}</div>
+            <el-progress :percentage="70" class="progress" color="red"></el-progress>
+            <el-dialog
+            title="三生三世十里桃花-1"
+            :visible.sync="scope.row.stepsVisible"
+            width="30%">
+            <span>
+                <div style="height: 300px;">
+                <el-steps direction="vertical" :active="1">
+                    <el-step title="抽取音频文件" description="提取音频指纹"></el-step>
+                    <el-step title="上传音频文件至声码云"></el-step>
+                    <el-step title="视频转码中"></el-step>
+                    <el-step title=""></el-step>
+                </el-steps>
+                </div>
+            </span>
+            </el-dialog> 
+        </template>
+        </el-table-column>
+        <el-table-column
+        label="操作"
+        width="100">
+        <template scope="scope">
+          <p v-if="!scope.row.stop"  @click="handleEdit(scope.$index, scope.row)">开始</p>
+          <p v-if="scope.row.stop" @click="handleEdit(scope.$index, scope.row)">暂停</p>
+        </template>
+        </el-table-column>
+    </el-table>
+    </div>
+</template>
+
+<style>
+  .el-table .warning-row {
+    background: #efefef;
+  }
+
+  .el-table .success-row {
+    background: #efefef;
+  }
+</style>
+
+<script>
+  export default {
+    name: 'file-unusual',
+    data () {
+      return {
+        tableData2: [{
+          name: '复仇者联盟',
+          part: '第一集',
+          divname: '待审核',
+          status: '待审核',
+          reason: '',
+          stop: true,
+          edit: false,
+          progressStatus: '切片中',
+          leftData: 20,
+          stepsVisible: false
+        }, {
+          name: '三生三世十里桃花第一集',
+          part: '第二集',
+          divname: '王小虎',
+          status: '已通过',
+          reason: '',
+          stop: false,
+          edit: true,
+          progressStatus: '转码中',
+          leftData: 60,
+          stepsVisible: false
+        }, {
+          name: '三生三世十里桃花第一集',
+          part: '第三集',
+          divname: '王小虎',
+          status: '已通过',
+          reason: '',
+          stop: true,
+          edit: false,
+          progressStatus: '读取音频',
+          leftData: 100,
+          stepsVisible: false
+        }
+        ]
+      }
+    },
+    methods: {
+      tableRowClassName ({row, rowIndex}) {
+        if (rowIndex === 1) {
+          return 'warning-row'
+        } else if (rowIndex === 3) {
+          return 'success-row'
+        }
+        return ''
+      },
+      handleEdit (index, row) {
+        console.log(row)
+        console.log(index)
+        this.tableData2[index].stop = !this.tableData2[index].stop
+      },
+      penEdit (index, row) {
+        console.log(row)
+        console.log(index)
+        this.tableData2[index].edit = !this.tableData2[index].edit
+      }
+
+    }
+  }
+</script>
+
+<style scoped>
+  .source-icon{
+    background: url('../../../static/img/source-icon.png') no-repeat center;
+    width: 20px;
+    height: 20px;
+    background-size: 20px 20px;
+    vertical-align: middle;
+  }
+
+  .i-icon{
+    display: inline-block;
+  }
+
+  .edit-icon{
+    background: url('../../../static/img/edit-icon.png') no-repeat center;
+    width: 20px;
+    height: 18px;
+    background-size: 20px 18px;
+    vertical-align: middle;
+    margin-left: 10px;
+  }
+
+  p{
+    display: inline-block;
+  }
+  
+  .form-group{
+    height: 32px;
+    line-height: 32px;
+  }
+
+  .input-group{
+    margin-right: 2vw;
+  }
+
+  .progress{
+    width:240px;
+    display: inline-block;
+  }
+   /*切片进度提示*/
+  .progress-status{
+    position: absolute;
+    top: 0;
+    display: inline-block;
+    color: red;
+    background: url('../../../static/img/progress-status.png') no-repeat center;
+    width: 60px;
+    height: 40px;
+    background-size: 60px 40px;
+    text-align: center;
+    padding-top: 5px;
+  }
+</style>

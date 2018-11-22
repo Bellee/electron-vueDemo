@@ -1,0 +1,192 @@
+<template>
+    <div id="connection">
+         <div class="lauch-upload">
+            <span class="lauch-btn">批量上传</span>
+            <input type="file" ref="file" multiple="multiple" @change="showDialog()"/> 
+          </div>
+<el-dialog
+  title="确认关联信息"
+  :visible.sync="dialogVisible"
+  width="61%">
+  <el-row class="connection-file">
+    <div class="warn" style="display:none;">
+        <span></span>
+        <P>三生三世十里桃花 第一集</p>
+        <P>重复选择，请重新确认</p>
+    </div>
+    <ul>
+        <li class="file-join" v-for="(nums,index) in num" v-bind:key="index">
+            <span class="vedio-name">{{nums.projectName}}</span><span class="join"></span><span class="vedio-file">{{nums.relatedFileName}}</span>
+        </li>
+        <li class="file-join"  v-for="(file,index) in chosedFiles">
+            <span class="vedio-name"></span><span class="join"></span><span class="vedio-file">{{file.fileName}}</span>
+        </li>
+    </ul>
+  </el-row>
+  <span slot="footer" class="dialog-footer">
+    <el-button type="primary" @click="dialogVisible = false">确定无误</el-button>
+    <el-button @click="dialogVisible = false">取 消</el-button>
+  </span>
+</el-dialog>
+    </div>  
+</template>
+
+<script>
+import Bus from '../../main/utils/bus'
+import {getFileMimeType} from '../../main/utils/filetype'
+export default {
+  name: 'connection',
+  data () {
+    return {
+      dialogVisible: false,
+      editpart: false,
+      num: [],
+      chosedMap: new Map(),
+      filename: [],
+
+      chosedFiles: []
+    }
+  },
+  computed: {
+  },
+  beforeCreate() {
+    let _this = this
+    Bus.$on('test', function(num) {
+      _this.num = num
+      Array.from(num).forEach(element => {
+        element.relatedFileName = element.projectName + '_?'
+        _this.chosedMap.set(element.projectName, element.projectName + '_?')
+      })
+      // 事件的解绑问题
+      console.log(_this.chosedMap)
+    })
+  },
+  methods: {
+    showDialog () {
+      let that = this
+      that.dialogVisible = true
+      // todo:计算匹配关系
+      console.log(that.$refs.file.files)
+      Array.from(that.$refs.file.files).forEach(file => {
+        console.log(getFileMimeType(file.path))
+        console.log(file)
+        that.chosedFiles.push({
+          'fileName': file.name
+        })
+      })
+    }
+  }
+}
+</script>
+
+<style scoped>
+.lauch-upload{
+  position: relative;
+  color: #fff;
+  font-size: 15px;
+  height: 20px;
+}
+
+.lauch-upload input{
+  *zoom: 1;
+  opacity: 0;
+  position: absolute;
+  top: -15px;
+  left: 10px;
+  height: 30px;
+  width: 6vw;
+}
+ul{
+    -webkit-margin-before: 0em;
+    -webkit-margin-after: 0em;
+    -webkit-padding-start: 0px;
+    width: 100%;
+}
+
+.file-join{
+    font-size: 0;
+}
+.file-join span{
+    font-size: 14px;
+    display: inline-block;
+    line-height: 14px;
+}
+
+.vedio-name{
+    width: 40%;
+    text-align: right;
+}
+
+.join{
+    width: 20%;
+    height: 14px;
+    background: url('../../../static/img/join.png') no-repeat  center center;
+    background-size: 6vw 30px;
+}
+
+.vedio-file{
+    width: 40%;
+    text-align: left;
+}
+
+.lauch-btn{
+  position: absolute;
+  top:-15px;
+  left: 10px;
+  font-size: 14px;
+  background: #409EFF;
+  padding: 4px 10px 4px 10px;
+  border-radius: 5px;
+}
+
+.el-dialog__header{
+    border: #efefef solid 1px;
+    background: #F0F0F0;
+}
+
+/*警告框*/
+.connection-file .warn{
+    position: absolute;
+    top: 6vw;
+    left: 16.8vw;
+    background: #595959;
+    z-index: 10000;
+    width: 19vw;
+    height: 11.4vw;
+    border-radius:4px;
+    text-align: center;
+    padding-top: 2.5vw;
+    box-sizing: border-box;
+    padding-bottom: 2.5vw;
+}
+
+.connection-file .warn span{
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background: url('../../../static/img/icon_warning.svg') no-repeat  center center;
+    background-size: 24px 24px;
+}
+
+.connection-file .warn p{
+    height: 30px;
+    line-height: 30px;
+    font-size: 16px;
+    color: #fff;
+    -webkit-margin-before: 0em;
+    -webkit-margin-after: 0em;
+}
+
+</style>
+
+<style>
+.el-dialog__header{
+    background: #F0F0F0;
+}
+.el-dialog__footer{
+    text-align: center;
+}
+
+
+</style>
+

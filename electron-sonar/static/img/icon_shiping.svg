@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="16px" height="16px" viewBox="0 0 16 16" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 49.3 (51167) - http://www.bohemiancoding.com/sketch -->
+    <title>icon_shiping_slice</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Artboard" transform="translate(-40.000000, -280.000000)" fill="#000000" fill-rule="nonzero">
+            <g id="icon-shiping" transform="translate(40.000000, 280.000000)">
+                <rect id="Rectangle-path" opacity="0" x="0" y="0" width="16" height="16"></rect>
+                <path d="M1,8 C1,4.13413334 4.13413334,1 8,1 C11.8658667,1 15,4.13413334 15,8 C15,11.8658667 11.8658667,15 8,15 C4.13413334,15 1,11.8658667 1,8 Z M6.48193138,4.83973197 C6.03206487,4.59193205 5.666665,4.80566531 5.666665,5.31899845 L5.666665,10.6805299 C5.666665,11.1901297 6.0315982,11.408063 6.48193138,11.1597964 L11.3917296,8.449864 C11.8406628,8.20159742 11.8415961,7.79839758 11.3917296,7.54966433 L6.48193138,4.83973197 Z" id="Shape"></path>
+            </g>
+        </g>
+    </g>
+</svg>

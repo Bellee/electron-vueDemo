@@ -1,0 +1,264 @@
+var Datastore = require('nedb')
+var path = require('path')
+var remote = require('electron').remote
+var async = require('async')
+var delString = require('./delString')
+
+var pool = {
+  'sm_user': new Datastore({
+    filename: path.join(remote.app.getPath('userData'), 'db/sm_user.db'),
+    autoload: true
+  }),
+  'mv_origin': new Datastore({
+    filename: path.join(remote.app.getPath('userData'), 'db/mv_origin.db'),
+    autoload: true
+  }),
+  'mv_novideos': new Datastore({
+    filename: path.join(remote.app.getPath('userData'), 'db/mv_novideos.db'),
+    autoload: true
+  }),
+  'mv_resize': new Datastore({
+    filename: path.join(remote.app.getPath('userData'), 'db/mv_resize.db'),
+    autoload: true
+  }),
+  'mv_cut': new Datastore({
+    filename: path.join(remote.app.getPath('userData'), 'db/mv_cut.db'),
+    autoload: true
+  })
+}
+
+var insert = function(item, callback) {
+  // pool.query('INSERT INTO ' + this.tableName + ' SET ?', item, callback)
+  var db = pool[this.tableName]
+  db.insert(item, function (err, newDoc) {
+    if (callback) {
+      callback(err, newDoc)
+    }
+  })
+}
+
+var insertIgnore = function(item, callback) {
+  // pool.query('INSERT IGNORE INTO ' + this.tableName + ' SET ?', item, callback)
+  var cond = {}
+  cond[this.fieldKey] = item[this.fieldKey]
+  var db = pool[this.tableName]
+  db.findOne(cond, function (err, doc) {
+    if (doc == null) {
+      db.insert(item, function (err, newDoc) {
+        if (callback) {
+          callback(err, newDoc)
+        }
+      })
+    } else {
+      if (callback) {
+        callback(err, doc)
+      }
+    }
+  })
+}
+
+var update = function(item, callback) {
+  // var fieldKey = this.fieldKey
+  // pool.query('UPDATE ' + this.tableName + ' SET ? WHERE ' + fieldKey + ' = ?', [
+  //   item, item[fieldKey]
+  // ], callback)
+  var cond = {}
+  cond[this.fieldKey] = item[this.fieldKey]
+  var db = pool[this.tableName]
+  db.update(cond, item, {}, function (err, numReplaced) {
+    if (callback) {
+      callback(err, numReplaced)
+    }
+  })
+}
+
+var replace = function(item, callback) {
+  // pool.query('REPLACE INTO ' + this.tableName + ' SET ?', item, callback)
+  var cond = {}
+  cond[this.fieldKey] = item[this.fieldKey]
+  var db = pool[this.tableName]
+  db.update(cond, item, { multi: false, upsert: true, returnUpdatedDocs: true }, function (err, numAffected, affectedDocuments, upsert) {
+    if (callback) {
+      callback(err, affectedDocuments)
+    }
+  })
+}
+
+var del = function(item, callback) {
+  // pool.query('DELETE FROM ' + this.tableName + ' WHERE ' + delString.escape(item), callback)
+  var cond = {}
+  cond[this.fieldKey] = item[this.fieldKey]
+  var db = pool[this.tableName]
+  db.remove(cond, { multi: true }, function (err, numRemoved) {
+    if (callback) {
+      callback(err, numRemoved)
+    }
+  })
+}
+
+var duplicate = function(exampleItem, callback) {
+  // pool.query('REPLACE INTO ' + this.targetTableName + ' SELECT * FROM ' + this.srcTableName + ' WHERE ' + delString.escape(exampleItem), callback)
+  var db = pool[this.tableName]
+  db.find(delString.escape(exampleItem), function (err, docs) {
+    db.insert(docs, function (err, newDoc) {
+      if (callback) {
+        callback(err, newDoc)
+      }
+    })
+  })
+}
+
+module.exports.query = function (tableName, conds, callback) {
+  // pool.query(sqlString, values, callback)
+  var db = pool[tableName]
+  db.find(conds, function (err, docs) {
+    if (callback) {
+      if (err) {
+        callback(err, null)
+      } else {
+        callback(null, docs)
+      }
+    }
+  })
+}
+
+module.exports.queryOne = function (tableName, conds, callback) {
+  // pool.query(sqlString, values, callback)
+  var db = pool[tableName]
+  db.findOne(conds, function (err, doc) {
+    if (callback) {
+      if (err) {
+        callback(err, null)
+      } else {
+        callback(null, doc)
+      }
+    }
+  })
+}
+
+module.exports.truncateTable = function(tableName, callback) {
+  // pool.query('TRUNCATE TABLE ' + tableName, callback)
+  var db = pool[tableName]
+  db.remove({}, { multi: true }, function (err, numRemoved) {
+    if (callback) {
+      if (err) {
+        callback(err, null)
+      } else {
+        callback(null, numRemoved)
+      }
+    }
+  })
+}
+
+module.exports.syncTable = function(tableName, items, callback) {
+  var db = pool[tableName]
+  db.remove({}, { multi: true }, function(err, result) {
+    if (callback) {
+      if (err) {
+        callback(err, null)
+      } else {
+        async.map(items, insert.bind({ tableName: tableName }), function(err, results) {
+          if (err) {
+            callback(err, null)
+          } else {
+            callback(null, results)
+          }
+        })
+      }
+    }
+  })
+}
+
+module.exports.insertTable = function (tableName, items, callback) {
+  async.map(items, insert.bind({ tableName: tableName }), function(err, results) {
+    if (callback) {
+      if (err) {
+        callback(err, null)
+      } else {
+        callback(null, results)
+      }
+    }
+  })
+}
+
+module.exports.updateTable = function(tableName, fieldKey, items, callback) {
+  async.map(items, update.bind({ tableName: tableName, fieldKey: fieldKey }), function(err, results) {
+    if (callback) {
+      if (err) {
+        callback(err, null)
+      } else {
+        callback(null, results)
+      }
+    }
+  })
+}
+
+module.exports.delTable = function (tableName, fieldKey, items, callback) {
+  async.map(items, del.bind({ tableName: tableName, fieldKey: fieldKey }), function(err, results) {
+    if (callback) {
+      if (err) {
+        callback(err, null)
+      } else {
+        callback(null, results)
+      }
+    }
+  })
+}
+
+module.exports.deleteTable = function (tableName, conds, callback) {
+  var db = pool[tableName]
+  db.remove(conds, { multi: true }, function (err, numRemoved) {
+    if (callback) {
+      callback(err, numRemoved)
+    }
+  })
+}
+
+module.exports.replaceTable = function (tableName, fieldKey, items, callback) {
+  async.map(items, replace.bind({ tableName: tableName, fieldKey: fieldKey }), function(err, results) {
+    if (callback) {
+      if (err) {
+        callback(err, null)
+      } else {
+        callback(null, results)
+      }
+    }
+  })
+}
+
+module.exports.insertIgnoreTable = function (tableName, fieldKey, items, callback) {
+  async.map(items, insertIgnore.bind({ tableName: tableName, fieldKey: fieldKey }), function(err, results) {
+    if (callback) {
+      if (err) {
+        callback(err, null)
+      } else {
+        callback(null, results)
+      }
+    }
+  })
+}
+
+module.exports.moveTable = function(srcTableName, targetTableName, exampleItems, callback) {
+  async.map(exampleItems, duplicate.bind({ srcTableName: srcTableName, targetTableName: targetTableName }), function(err, results) {
+    if (callback) {
+      if (err) {
+        callback(err, null)
+      } else {
+        async.map(exampleItems, del.bind({ tableName: srcTableName }), function(err, results) {
+          if (err) {
+            callback(err, null)
+          } else {
+            callback(null, results)
+          }
+        })
+      }
+    }
+  })
+}
+
+module.exports.compactDatafile = function() {
+  for (var key in pool) {
+    var db = pool[key]
+    db.persistence.compactDatafile()
+  }
+}

@@ -1,0 +1,151 @@
+ <template>
+   <el-col id="bucket-nav">
+    <el-menu
+      class="el-menu-vertical-demo"
+      background-color="#efefef"
+      text-color="#000"
+      active-text-color="#fff"
+      @select="handleSelect">
+      <el-menu-item index="home" >
+          <i class="icon-home"></i>
+          <span slot="title">首页看板</span>
+      </el-menu-item>
+      <el-menu-item index="upload">
+        <i class="icon-yingshi"></i>
+        <span slot="title">影视管理</span>
+      </el-menu-item>
+      <el-menu-item index="login">
+        <span class="icon-shiping"></span>
+        <span slot="title">视频管理</span>
+      </el-menu-item>
+      <el-menu-item index="4">
+        <span class="icon-data"></span>
+        <span slot="title">数据统计</span>
+      </el-menu-item>
+      <el-menu-item index="5">
+        <span class="icon-me"></span>
+        <span slot="title">我的信息</span>
+      </el-menu-item>
+    </el-menu>
+  </el-col>
+ </template>
+ 
+<script>
+  export default {
+    name: 'bucket-nav',
+    methods: {
+      data() {
+        return {
+          hh: false
+        }
+      },
+      handleSelect (index) {
+        this.$router.push({
+          name: index
+        })
+      }
+    }
+  }
+</script>
+
+<style>
+#bucket-nav{
+  position: fixed;
+  left: 0;
+  top: 114px;
+  width: 12.3vw;
+  overflow: hidden;
+  height: 100%;
+  background: #efefef;
+}
+
+#bucket-nav li{
+  padding-left: 3vw !important;
+}
+
+.icon-home{
+    display: inline-block;
+    width: 1.2vw;
+    height: 1.2vw;
+    background: url('../../../static/img/icon_home.svg') no-repeat center;
+    background-size: 1.2vw 1.2vw;
+    margin-right: 0.6vw;
+}
+
+.icon-yingshi{
+    display: inline-block;
+    width: 1.2vw;
+    height: 1.2vw;
+    background: url('../../../static/img/icon_yingshi.svg') no-repeat center;
+    background-size: 1.2vw 1.2vw;
+    margin-right: 0.6vw;
+}
+
+.icon-shiping{
+    display: inline-block;
+    width: 1.2vw;
+    height: 1.2vw;
+    background: url('../../../static/img/icon_shiping.svg') no-repeat center;
+    background-size: 1.2vw 1.2vw;
+    margin-right: 0.6vw;
+}
+
+.icon-data{
+    display: inline-block;
+    width: 1.2vw;
+    height: 1.2vw;
+    background: url('../../../static/img/icon_data.svg') no-repeat center;
+    background-size: 1.2vw 1.2vw;
+    margin-right: 0.6vw;
+}
+.icon-me{
+    display: inline-block;
+    width: 1.2vw;
+    height: 1.2vw;
+    background: url('../../../static/img/icon_me.svg') no-repeat center;
+    background-size: 1.2vw 1.2vw;
+    margin-right: 0.6vw;
+}
+
+.el-menu-item, .el-submenu__title{
+  height: 5.4vw;
+  line-height: 5.4vw;
+}
+
+.el-menu-item.is-active {
+   background-color: #64A3FF !important;
+   color:#fff !important;
+}
+
+.el-menu-item.is-active .icon-home{
+  background: url('../../../static/img/icon_home_white.svg') no-repeat center;
+}
+
+.el-menu-item.is-active .icon-yingshi{
+  background: url('../../../static/img/icon_yingshi_white.svg') no-repeat center;
+}
+
+.el-menu-item.is-active .icon-shiping{
+  background: url('../../../static/img/icon_shiping_white.svg') no-repeat center;
+}
+
+.el-menu-item.is-active .icon-data{
+  background: url('../../../static/img/icon_data_white.svg') no-repeat center;
+}
+
+.el-menu-item.is-active .icon-me{
+  background: url('../../../static/img/icon_me_white.svg') no-repeat center;
+}
+
+.el-menu-item:hover{
+  background-color: #64A3FF !important;
+  color:#fff !important;
+}
+
+.el-menu-item:focus{
+  background-color: #64A3FF !important;
+  color:#fff !important;
+}
+</style>
+
+ 

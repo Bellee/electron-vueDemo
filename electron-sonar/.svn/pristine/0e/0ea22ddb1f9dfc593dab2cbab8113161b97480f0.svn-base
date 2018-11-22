@@ -1,0 +1,373 @@
+<template>
+    <div id="file-uploading-page"> 
+    <!--上传中-->
+    <el-table
+        :data="fileUpload"
+        style="width: 100%"
+        stripe
+        :header-cell-style="getRowClass">
+        <el-table-column
+        prop="name"
+        label="片源名称"
+        width="">
+         <template slot-scope="scope">
+          <p>{{scope.row.projectName}}</p>
+        </template>
+        </el-table-column>
+        <el-table-column
+        prop="divname"
+        label="分集名称"
+        width="">
+         <template slot-scope="scope">
+            <div v-if="!scope.row.edit" @click="penEdit(scope.$index, scope.row)">
+              <p>{{scope.row.episodeName}}</p>
+              <span class="i-icon">修改</span>
+            </div>
+            <div class="form-group" v-if="scope.row.edit">
+              <div class="input-group">
+                <el-input size="small" v-model="scope.row.episodeName"></el-input>
+              </div>
+              <span class="preserve" @click="penEdit(scope.$index, scope.row)">保存</span>
+            </div>
+        </template>
+        </el-table-column>      
+        <el-table-column
+        prop="status"
+        label="状态"
+        width=""
+        align="center">
+        <template slot-scope="scope">
+          <span class="circle" v-bind:style="scope.row.epAuditStatus|Color"></span>
+          <span>{{scope.row.epAuditStatus|Status}}</span>
+        </template>
+        </el-table-column>
+        <el-table-column
+        prop="reason"
+        label="进度"
+        width="">
+        <template slot-scope="scope" style="position: relative;">
+              <div class="progress-status" @click="scope.row.stepsVisible=!scope.row.stepsVisible" v-bind:style="{left: scope.row.leftData + 'px'}">{{scope.row.progressStatus}}</div>
+              <el-progress :percentage="70" class="progress" color="#67c23a"></el-progress>
+              <el-dialog
+              title="三生三世十里桃花-1"
+              :visible.sync="scope.row.stepsVisible"
+              width="90%"
+              :modal="false" class="sk-steps">
+              <ul class="steps">
+                <li>
+                  <span class="step"><i></i></span>
+                  <div class="content"><span>抽取音频文件</span><span>提取音频指纹 </span></div>
+                </li>
+                <li>
+                  <span class="step"><i></i></span>
+                  <div class="content"><span>上传音频文件至声码云</span></div>
+                </li>
+                <li class="active">
+                  <span  class="step"><i></i></span>
+                  <div class="content"><span>视频转码</span></div>
+                </li>
+                <li>
+                  <span class="step"><i></i></span>
+                  <div class="content"><span>视频切片中</span></div>
+                </li>
+                <li>
+                  <span class="step" ><i></i></span>
+                  <div class="content"><span>上传视频文件至七牛云</span></div>
+                </li>
+              </ul>
+              </el-dialog> 
+        </template>
+        </el-table-column>
+        <el-table-column
+        label="操作"
+        width="100">
+        <template slot-scope="scope">
+          <p class="operate" v-if="!scope.row.stop"  @click="handleEdit(scope.$index, scope.row)">开始</p>
+          <p class="operate" v-if="scope.row.stop" @click="handleEdit(scope.$index, scope.row)">继续</p>
+        </template>
+        </el-table-column>
+    </el-table>
+    <file-page :message="total" v-on:childByValue="childByValue"></file-page>
+    </div>
+</template>
+
+<style>
+  .el-table .warning-row {
+    background: #efefef;
+  }
+
+  .el-table .success-row {
+    background: #efefef;
+  }
+</style>
+
+<script>
+  import mockdata from '@/scripts/mockdata.js'
+  import FilePage from '../components/FilePage'
+  export default {
+    name: 'file-uploading',
+    components: {FilePage},
+    data () {
+      return {
+        fileUpload: [],
+        total: 0,
+        fileUpload1: [{
+          name: '复仇者联盟',
+          part: '第一集',
+          divname: '待审核',
+          status: '上传中',
+          reason: '',
+          stop: true,
+          edit: false,
+          progressStatus: '切片中',
+          leftData: 20,
+          stepsVisible: false,
+          color: '#999999'
+        }, {
+          name: '三生三世十里桃花第一集',
+          part: '第二集',
+          divname: '王小虎',
+          status: '待续传',
+          reason: '',
+          stop: false,
+          edit: true,
+          progressStatus: '转码中',
+          leftData: 60,
+          stepsVisible: false,
+          color: '#F5222D'
+        }, {
+          name: '三生三世十里桃花第一集',
+          part: '第三集',
+          divname: '王小虎',
+          status: '上传中',
+          reason: '',
+          stop: true,
+          edit: false,
+          progressStatus: '读取音频',
+          leftData: 100,
+          stepsVisible: false,
+          color: '#52C41A'
+        }
+        ]
+      }
+    },
+    created() {
+      new Promise((resolve, reject) => {
+        this.rows = mockdata.data.datas.rows// 直接点出你生成的假数据对象即可
+        this.total = mockdata.data.datas.total
+        this.status = mockdata.data.datas
+        this.fileUpload = this.rows
+        for (var i = 0; i < this.fileUpload[i]; i++) {
+          this.$set(this.fileUpload[i], 'edit', false)
+          this.$set(this.fileUpload[i], 'stop', false)
+          // this.$set(this.fileList[i], 'againa', '0')
+          this.fileUpload[i].againa = '0'
+        }
+      }).catch(err => {
+        console.log(err)
+      })
+    },
+    filters: {
+      Status: function(data) {
+        switch (data) {
+          case 'A': return '待审核'
+          case 'B': return '审核通过'
+          case 'C': return '审核不通过'
+        }
+      },
+      Color: function(data) {
+        switch (data) {
+          case 'A': return 'background:red'
+          case 'B': return 'background:yellow'
+          case 'C': return 'background:green'
+        }
+      }
+    },
+    methods: {
+      getRowClass({ row, column, rowIndex, columnIndex }) {
+        if (rowIndex == 0) {
+          return 'background:#EFEFEF'
+        } else {
+          return ''
+        }
+      },
+      handleEdit (index, row) {
+        console.log(row)
+        console.log(index)
+        this.fileUpload[index].stop = !this.fileUpload[index].stop
+      },
+      penEdit (index, row) {
+        console.log(row)
+        console.log(index)
+        this.fileUpload[index].edit = !this.fileUpload[index].edit
+      },
+      childByValue: function (currentPage) {
+      // childValue就是子组件传过来的值
+        this.name = currentPage
+        console.log(this.name)
+      }
+
+    }
+  }
+</script>
+
+<style scoped>
+   .i-icon{
+    display: inline-block;
+    font-size: 0.58rem;
+    color: #64A3FF;
+    margin-left: 0.42rem;
+  }
+
+  p{
+    display: inline-block;
+  }
+  
+  .form-group{
+    height: 1.33rem;
+    line-height: 1.33rem;
+  }
+
+  .input-group{
+    margin-right: 1.33rem;
+    width: 5.88rem;
+    display: inline-block;
+    }
+
+  .preserve{
+      color: #64A3FF;
+    }
+
+  .progress{
+    width: 9.2rem;
+    display: inline-block;
+  }
+
+  .operate{
+    color: #64A3FF;
+  }
+
+  .circle{
+    border-radius:45%;
+    width: 0.25rem;
+    height: 0.25rem;
+    display: inline-block;
+    margin-right: 0.42rem;
+  }
+
+   /*切片进度提示*/
+  .progress-status{
+    color: #64A3FF;
+    font-size: 0.5rem;
+    position: absolute;
+    top: 0.22rem;
+    display: inline-block;
+    background: url('../../../static/img/progress-status.png') no-repeat center center;
+    width: 3rem;
+    height: 1.25rem;
+    padding-top: 2px;
+    background-size: 3rem 1.25rem;
+    text-align: center;
+  }
+
+  .steps{
+    list-style: none;
+    font-size: 0;
+    margin-left: 3.25rem;
+  }
+
+  .steps li{
+    display: inline-block;
+    width: 20%;
+    font-size: 0.5rem;
+  }
+
+  .steps li .step{
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    background: #fff;
+    border-radius: 50%;
+    border: 1px solid #000;
+    display: flex;
+    justify-content:center;
+    align-items:Center;
+  }
+
+  .steps li .step i{
+    display: inline-block;
+    width: 0.33rem;
+    height: 0.33rem;
+    background: #64A3FF;
+    border-radius: 50%;
+    vertical-align:middle;
+  }
+
+/* 选中之后的圆圈为灰色 */
+  .steps li.active ~ li i {
+  background-color: #BFBFBF;
+ }
+
+  .steps li{
+    position: relative;
+  }
+
+  .steps .active .step i{
+    background: #52C41A;
+  }
+
+  .steps li.active .content{
+    color:#52C41A;
+  }
+
+  .steps li ~ li:after {
+  content: '';
+  width: 93%;
+  height: 2px;
+  background-color: #64A3FF;
+  position: absolute;
+  left: -93%;
+  top: 0.2rem;
+}
+
+.steps li.active::after{
+  background-color: #64A3FF;
+}
+
+/* 选中之后的连线为灰色 */
+.steps li.active ~ li:after {
+  background-color: #BFBFBF;
+}
+
+.steps li .content{
+  position: absolute;
+  left:-45%;
+  top: 1rem;
+  width: 100%;
+  text-align:center;
+}
+
+.steps li .content span{
+  display: block;
+}
+
+.operate{
+    color: #64A3FF;
+  }
+
+</style>
+<style>
+.sk-steps .el-dialog__header,.sk-steps .el-dialog__body{
+  background: #595959;
+  color: #fff;
+}
+.sk-steps .el-dialog__body{
+  height: 5.2rem;
+}
+
+.sk-steps .el-dialog__title{
+  color: #fff;
+  font-size: 0.66rem;
+}
+</style>
+

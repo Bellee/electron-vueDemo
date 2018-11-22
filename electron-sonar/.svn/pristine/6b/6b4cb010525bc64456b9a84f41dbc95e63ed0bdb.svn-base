@@ -1,0 +1,499 @@
+var httpClient = require('../../actions/utils/httpClient')
+var server = require('../../actions/config/server')
+var execution = require('../../actions/execution/v1')
+var async = require('async')
+
+var uploadingItems = []
+
+var mergerFileList = (fileList, docs, callback) => {
+  var fileListData = fileList.rows
+  for (let i = 0; i < fileListData.length; i++) {
+    var dao = fileListData[i]
+    var doc = null
+    for (let j = 0; j < docs.length; j++) {
+      if (docs[j].project_episode_id == dao.projectEpisodeId) {
+        doc = docs[j]
+        break
+      }
+    }
+
+    if (!doc || doc.status == 2) {
+      switch (dao.epAuditStatus) {
+        case 'A':
+          dao.viewStatus = '待审核'
+          dao.viewOpt = '重新上传'
+          dao.viewOptDisable = 1
+          dao.viewBackground = 'background:#FCB812'
+          break
+        case 'B':
+          dao.viewStatus = '已通过'
+          dao.viewOpt = '重新上传'
+          dao.viewOptDisable = 1
+          dao.viewBackground = 'background:#52C41A'
+          break
+        case 'C':
+          dao.viewStatus = '未通过'
+          dao.viewOpt = '重新上传'
+          dao.viewOptDisable = 0
+          dao.viewBackground = 'background:#FCB812'
+          break
+        default:
+          dao.viewStatus = '待上传'
+          dao.viewOpt = '上传'
+          dao.viewOptDisable = 0
+          dao.viewBackground = 'background:#999999'
+          break
+      }
+    } else {
+      if (doc.status == 1) {
+        dao.is_pause = doc.is_pause
+        dao.pause_status = doc.pause_status
+        if (doc.is_pause == 1) {
+          dao.viewStatus = '待续传'
+          dao.viewOpt = '继续'
+          dao.viewOptDisable = 0
+          dao.viewBackground = 'background:#FCB812'
+        } else {
+          dao.viewStatus = '上传中'
+          dao.viewOpt = '暂停'
+          dao.viewOptDisable = 0
+          dao.viewBackground = 'background:#52C41A'
+        }
+        dao.viewProcPercent = doc.proc_percent
+        switch (doc.proc_status) {
+          case 1:
+            dao.viewProcStatus = '提取音频'
+            break
+          case 2:
+            dao.viewProcStatus = '上传音频'
+            break
+          case 3:
+            dao.viewProcStatus = '转码中'
+            break
+          case 4:
+            dao.viewProcStatus = '切片中'
+            break
+          case 5:
+            dao.viewProcStatus = '上传切片'
+            break
+          case 6:
+            dao.viewProcStatus = '上传成功'
+            break
+          default:
+            dao.viewProcStatus = '等待中'
+            break
+        }
+      } else if (doc.status == -1) {
+        dao.viewStatus = '上传异常'
+        dao.viewOptDisable = 0
+        dao.procPercent = doc.proc_percent
+        switch (doc.proc_status) {
+          case 1:
+            dao.viewOpt = '重新提取'
+            dao.viewProcStatus = '音频提取失败'
+            break
+          case 2:
+            dao.viewOpt = '重新上传音频'
+            dao.viewProcStatus = '上传音频失败'
+            break
+          case 3:
+            dao.viewOpt = '重新转码'
+            dao.viewProcStatus = '转码失败'
+            break
+          case 4:
+            dao.viewOpt = '重新切片'
+            dao.viewProcStatus = '切片失败'
+            break
+          case 5:
+            dao.viewOpt = '重新上传切片'
+            dao.viewProcStatus = '上传切片失败'
+            break
+          default:
+            dao.viewOpt = '重新提取'
+            dao.viewProcStatus = '音频提取失败'
+            break
+        }
+      }
+    }
+  }
+  uploadingItems = fileList
+  callback(fileList)
+}
+
+// 更新进度条
+var updateProgress = (projectEpisodeId, proc_status, percent) => {
+  // todo
+  for (let i = 0; i < uploadingItems.rows.length; i++) {
+    var item = uploadingItems.rows[i]
+    if (item.projectEpisodeId == projectEpisodeId) {
+      var cur_status = item.viewProcStatus
+      var cur_percent = item.viewProcPercent ? item.viewProcPercent : 0
+      // 0等待中 1音频提取 2音频上传 3转码 4切片 5切片上传
+      switch (proc_status) {
+        case 1:
+          cur_status = '提取音频'
+          break
+        case 2:
+          cur_status = '上传音频'
+          break
+        case 3:
+          cur_status = '转码中'
+          break
+        case 4:
+          cur_status = '切片中'
+          break
+        case 5:
+          cur_status = '上传切片'
+          break
+        case 6:
+          cur_status = '上传成功'
+          break
+      }
+
+      if (proc_status == 6) {
+        cur_percent = 100
+        uploadingItems.rows.splice(i, 1)
+      } else {
+        cur_percent = Math.round(cur_percent + percent)
+        if (cur_percent > 99) {
+          cur_percent = 99
+        }
+      }
+      item.proc_status = proc_status
+      item.viewProcStatus = cur_status
+      item.viewProcPercent = cur_percent
+      console.log(projectEpisodeId + '上传进度：' + item.viewProcStatus + ' ' + item.viewProcPercent)
+      break
+    }
+  }
+}
+
+// 上传音频到飞幕
+var upLoadNovideo = (projectEpisodeId) => {
+  execution.selectNovideo(projectEpisodeId, (err, docs) => {
+    if (docs && docs.length > 0) {
+      var doc = docs[0]
+      var item = {}
+      item.file_title = doc.file_title
+      item.acr_id = doc.acr_id
+      httpClient.post({
+        json: true,
+        url: server.host1 + server.api.api_updateNovideo,
+        body: item
+      }, function (data) {
+        console.log(data)
+        if (data.respCode != 100) {
+          console.log(data.message)
+        }
+      })
+    }
+  })
+}
+
+// 上传切片到飞幕
+var upLoadCut = (projectEpisodeId) => {
+  execution.selectCut(projectEpisodeId, (err, docs) => {
+    if (docs && docs.length > 0) {
+      var item = {}
+      item.data = []
+      for (let i = 0; i < docs.length; i++) {
+        var doc = docs[i]
+        item.file_title = doc.file_origin_title
+        item.cut_status = 1
+        var data = {}
+        data.qiniu_key = doc.qiniu_key
+        data.cut_options = doc.cut_options
+        item.data.push(data)
+      }
+      httpClient.post({
+        json: true,
+        url: server.host1 + server.api.api_updateCut,
+        body: item
+      }, function (data) {
+        console.log(data)
+        if (data.respCode != 100) {
+          console.log(data.message)
+        }
+      })
+    }
+  })
+}
+
+var processItems = () => {
+  var cnt = 0
+  var cond = {}
+  cond.status = 1
+  execution.selectOrigin(cond, function (err, docs) {
+    for (let i = 0; i < docs.length; i++) {
+      var org = docs[i]
+      if (cnt > 3) {
+        break
+      }
+
+      if (org && org.status == 1) {
+        if (org.is_pause == 1) {
+          continue
+        } else if (org.pause_status == 0 && org.proc_status > 0) {
+          cnt++
+        } else {
+          if (org.proc_status == 0) {
+            org.proc_status = 1
+          }
+          cnt++
+          // 抽取音频
+          execution.novideo(org, updateProgress, function (err, nvd) {
+            if (org.is_pause == 0 && nvd && nvd.length > 0) {
+              // 上传音频
+              execution.uploadACRCloud(org, nvd[0], updateProgress, function (err, acr) {
+                if (org.is_pause == 0) {
+                  // 降码
+                  execution.resize(org, updateProgress, function (err, rsz) {
+                    if (org.is_pause == 0 && rsz && rsz.length > 0) {
+                      // 切片
+                      execution.cut(org, rsz[0], updateProgress, function (err, cuts) {
+                        if (org.is_pause == 0) {
+                          // 上传切片
+                          async.mapLimit(cuts, cuts.length, function (cut, callback) {
+                            execution.uploadQiniu(org, cut, cuts.length, updateProgress, callback)
+                          }, function (err, qnu) {
+                            if (org.is_pause == 0) {
+                              execution.uploadQiniuComplete(org, rsz[0], updateProgress, function (err, cpl) {
+                                if (org.is_pause == 0) {
+                                  org.status = 2
+                                  org.proc_status = 6
+                                  org.pause_status = 0
+                                  // 上传音频到飞幕
+                                  upLoadNovideo()
+                                  // 上传切片到飞幕
+                                  upLoadCut()
+                                }
+                                // 继续下一上传
+                                processItems()
+                              })
+                            }
+                          })
+                        }
+                      })
+                    }
+                  })
+                }
+              })
+            }
+          })
+        }
+      }
+    }
+  })
+}
+
+// module.exports.updateProgress()
+
+module.exports.getEpisodeList = (producerId, status, name, page, rows, callback) => {
+  if (!producerId) {
+    producerId = 5470
+  }
+  execution.init(producerId)
+  var cond = {}
+  cond.instance_id = producerId
+  if (status == 0) {
+    execution.selectOrigin(cond, function (err, docs) {
+      httpClient.get({
+        json: true,
+        url: server.host + server.api.api_episode_list + '?page=' + page + '&rows=' + rows + '&producerId=' + producerId + '&name=' + encodeURIComponent(name)
+      }, function (data) {
+        console.log(data)
+        mergerFileList(data.data, docs, callback)
+      })
+    })
+  } else if (status == 1) {
+    cond.status = {}
+    cond.status.$in = [1, -1]
+    execution.selectOrigin(cond, function (err, docs) {
+      var ids = docs.map(doc => doc.project_episode_id)
+      httpClient.get({
+        json: true,
+        url: server.host + server.api.api_episode_list + '?page=' + page + '&rows=' + rows + '&producerId=' + producerId + '&name=' + encodeURIComponent(name) + '&sts=' + '&exIds=' + ids
+      }, function (data) {
+        mergerFileList(data.data, docs, callback)
+      })
+    })
+  } else if (status == 2) {
+    cond.status = 1
+    execution.selectOrigin(cond, function (err, docs) {
+      var ids = docs.map(doc => doc.project_episode_id)
+      ids.push(-1)
+      httpClient.get({
+        json: true,
+        url: server.host + server.api.api_episode_list + '?page=' + page + '&rows=' + rows + '&producerId=' + producerId + '&name=' + encodeURIComponent(name) + '&inIds=' + ids
+      }, function (data) {
+        mergerFileList(data.data, docs, callback)
+      })
+    })
+  } else if (status == 3) {
+    cond.status = -1
+    execution.selectOrigin(cond, function (err, docs) {
+      var ids = docs.map(doc => doc.project_episode_id)
+      ids.push(-1)
+      httpClient.get({
+        json: true,
+        url: server.host + server.api.api_episode_list + '?page=' + page + '&rows=' + rows + '&producerId=' + producerId + '&name=' + encodeURIComponent(name) + '&inIds=' + ids
+      }, function (data) {
+        mergerFileList(data.data, docs, callback)
+      })
+    })
+  } else {
+    cond.status = {}
+    cond.status.$in = [1, -1]
+    execution.selectOrigin(cond, function (err, docs) {
+      var ids = docs.map(doc => doc.project_episode_id)
+      httpClient.get({
+        json: true,
+        url: server.host + server.api.api_episode_list + '?page=' + page + '&rows=' + rows + '&producerId=' + producerId + '&name=' + encodeURIComponent(name) + '&sts=C' + '&exIds=' + ids
+      }, function (data) {
+        mergerFileList(data.data, docs, callback)
+      })
+    })
+  }
+}
+
+// 上传/重新上传
+module.exports.addItem = (filePath, fileTitle, projectEpisodeId) => {
+  // 添加视频源
+  execution.addOrigin(filePath, fileTitle, projectEpisodeId, function (err, org) {
+    processItems()
+  })
+}
+
+// 批量上传
+module.exports.addList = (fileList) => {
+  // 添加视频源
+  if (fileList && fileList.length > 0) {
+    for (let i = 0; i < fileList.length; i++) {
+      var filePath = fileList[i].path
+      var fileTitle = fileList[i].projectName + '-' + fileList[i].sets
+      var projectEpisodeId = fileList[i].projectEpisodeId
+      execution.addOrigin(filePath, fileTitle, projectEpisodeId, function (err, org) {
+        if (i == fileList.length - 1) {
+          processItems()
+        }
+      })
+    }
+  }
+}
+
+// 暂停
+module.exports.pauseItem = (projectEpisodeId) => {
+  var cond = {}
+  cond.project_episode_id = projectEpisodeId
+  execution.selectOrigin(cond, function (err, docs) {
+    for (let i = 0; i < docs.length; i++) {
+      var doc = docs[i]
+      if (doc.is_pause != 1) {
+        doc.is_pause = 1
+        doc.pause_status = doc.proc_status
+        for (let j = 0; j < uploadingItems.rows.length; j++) {
+          var dao = uploadingItems.rows[j]
+          if (dao.projectEpisodeId == doc.project_episode_id) {
+            dao.is_pause = 1
+            dao.pause_status = dao.proc_status
+            dao.viewStatus = '待续传'
+            dao.viewOpt = '继续'
+            dao.viewOptDisable = 0
+            dao.viewBackground = 'background:#FCB812'
+            break
+          }
+        }
+        execution.updateOrigin(doc, function (err, docs) {})
+      }
+    }
+  })
+}
+
+// 继续
+module.exports.continueItem = (projectEpisodeId) => {
+  var cond = {}
+  cond.project_episode_id = projectEpisodeId
+  execution.selectOrigin(cond, function (err, docs) {
+    for (let i = 0; i < docs.length; i++) {
+      var doc = docs[i]
+      if (doc.is_pause != 0) {
+        doc.is_pause = 0
+        for (let j = 0; j < uploadingItems.rows.length; j++) {
+          var dao = uploadingItems.rows[j]
+          if (dao.projectEpisodeId == doc.project_episode_id) {
+            dao.is_pause = 0
+            dao.viewStatus = '上传中'
+            dao.viewOpt = '暂停'
+            dao.viewOptDisable = 0
+            dao.viewBackground = 'background:#52C41A'
+            break
+          }
+        }
+        execution.updateOrigin(doc, function (err, docs) {
+          if (i == docs.length - 1) {
+            processItems()
+          }
+        })
+      }
+    }
+  })
+}
+
+// 全部暂停
+module.exports.pauseAll = (producerId) => {
+  execution.init(producerId)
+  var cond = {}
+  cond.status = 1
+  execution.selectOrigin(cond, function (err, docs) {
+    for (let i = 0; i < docs.length; i++) {
+      var doc = docs[i]
+      if (doc.is_pause != 1) {
+        doc.is_pause = 1
+        doc.pause_status = doc.proc_status
+        // for (let j = 0; j < uploadingItems.rows.length; j++) {
+        //   var dao = uploadingItems.rows[j]
+        //   if (dao.projectEpisodeId == doc.project_episode_id) {
+        //     dao.is_pause = 1
+        //     dao.pause_status = dao.proc_status
+        //     dao.viewStatus = '待续传'
+        //     dao.viewOpt = '继续'
+        //     dao.viewOptDisable = 0
+        //     dao.viewBackground = ''
+        //     break
+        //   }
+        // }
+        execution.updateOrigin(doc, function (err, docs) { })
+      }
+    }
+  })
+}
+
+// 全部继续
+module.exports.continueAll = () => {
+  var cond = {}
+  cond.status = 1
+  execution.selectOrigin(cond, function (err, docs) {
+    for (let i = 0; i < docs.length; i++) {
+      var doc = docs[i]
+      if (doc.is_pause != 0) {
+        doc.is_pause = 0
+        for (let j = 0; j < uploadingItems.rows.length; j++) {
+          var dao = uploadingItems.rows[j]
+          if (dao.projectEpisodeId == doc.project_episode_id) {
+            dao.is_pause = 0
+            dao.viewStatus = '上传中'
+            dao.viewOpt = '暂停'
+            dao.viewOptDisable = 0
+            dao.viewBackground = 'background:#52C41A'
+            break
+          }
+        }
+        execution.updateOrigin(doc, function (err, docs) {
+          if (i == docs.length - 1) {
+            processItems()
+          }
+        })
+      }
+    }
+  })
+}

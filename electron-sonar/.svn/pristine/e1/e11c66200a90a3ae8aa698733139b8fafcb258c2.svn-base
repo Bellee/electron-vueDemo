@@ -1,0 +1,262 @@
+<template>
+    <div id="file-list-page">
+    <el-table
+        :data="fileList"
+        style="width: 100%"
+        :header-cell-style="getRowClass">
+        <el-table-column
+        label="片源名称"
+        width="">
+         <template slot-scope="scope">
+          <p>{{scope.row.projectName}}</p>
+        </template>
+        </el-table-column>
+        <el-table-column
+        label="分集名称"
+        width="">
+         <template slot-scope="scope">
+          <div v-if="scope.row.episodeName">
+            <div v-if="!scope.row.edit" @click="penEdit(scope.$index, scope.row)">
+              <p>{{scope.row.episodeName}}</p>
+              <span class="i-icon">修改</span>
+            </div>
+            <div class="form-group" v-if="scope.row.edit">
+              <div class="input-group">
+                <el-input size="small" v-model="scope.row.episodeName"></el-input>
+              </div>
+              <span class="preserve" @click="penEdit(scope.$index, scope.row)">保存</span>
+            </div>
+          </div>
+          <div v-else-if="!scope.row.episodeName">
+            -
+          </div>
+        </template>
+        </el-table-column>      
+        <el-table-column
+        prop="status"
+        label="状态"
+        width="">
+        <template slot-scope="scope">
+          <span class="circle" v-bind:style="scope.row.epAuditStatus|Color"></span>
+          <span>{{scope.row.epAuditStatus|Status}}</span>
+        </template>
+        </el-table-column>
+        <el-table-column
+        label="操作"
+        width="120">
+        <template slot-scope="scope">
+          <div v-if="scope.row.againa=='0'">
+          <p  class="operate" v-if="!scope.row.stop"  @click="handleEdit(scope.$index, scope.row)">继续</p>
+          <p  class="operate" v-if="scope.row.stop" @click="handleEdit(scope.$index, scope.row)">暂停</p>
+          </div>
+          <div class="upload-again" v-else-if="scope.row.againa=='1'">
+            <p>重新上传</p>
+                <el-tooltip placement="bottom-end">
+                  <div slot="content">如需重新上传请与<br/>唢呐平台线下沟通</div>
+                  <div></div>
+                </el-tooltip>
+          </div>
+        </template>
+        </el-table-column>
+    </el-table>
+    <file-page :message="total" v-on:childByValue="childByValue"></file-page>
+    </div>
+</template>
+
+<script>
+import {get, post, httpRequestConstant} from '../../actions/utils/httpClient'
+import FilePage from '../components/FilePage'
+import { join } from 'path'
+import mockdata from '@/scripts/mockdata.js'
+import server from '../../actions/config/server'
+export default {
+  name: 'file-list',
+  components: {FilePage},
+  data () {
+    return {
+      fileList: [],
+      rows: '',
+      total: 0,
+      cPage: 1,
+      csize: 20
+    }
+  },
+  created() {
+    // let response = []
+    var _this = this
+    get({
+      json: true,
+      url: server.host + server.api.api_episode_list + '?page=' + this.cPage + '&rows=' + this.csize
+    }, function(response) {
+      console.log(response)
+      _this.total = response.data.total
+      _this.fileList = response.data.rows
+      console.log(_this.total)
+      for (var i = 0; i < _this.fileList.length; i++) {
+        _this.$set(_this.fileList[i], 'edit', false)
+        _this.$set(_this.fileList[i], 'stop', false)
+        // this.$set(this.fileList[i], 'againa', '0')
+        _this.fileList[i].againa = '0'
+      }
+    })
+  },
+  filters: {
+    // 将abc状态转换成文字
+    Status: function(data) {
+      if (data == null) {
+        return '上传中的各种状态'
+      } else {
+        switch (data) {
+          case 'A': return '待审核'
+          case 'B': return '审核通过'
+          case 'C': return '审核不通过'
+        }
+      }
+    },
+    Color: function(data) {
+      if (data == null) {
+        return 'background:#999999'
+      } else {
+        switch (data) {
+          case 'A': return 'background:#FCB812'
+          case 'B': return 'background:#52C41A'
+          case 'C': return 'background:#FCB812'
+        }
+      }
+    }
+  },
+  methods: {
+    getRowClass({ row, column, rowIndex, columnIndex }) {
+      if (rowIndex == 0) {
+        return 'background:#EFEFEF'
+      } else {
+        return ''
+      }
+    },
+    handleEdit (index, row) {
+      console.log(row)
+      console.log(index)
+      this.fileList[index].stop = !this.fileList[index].stop
+    },
+    penEdit (index, row) {
+      console.log(row)
+      console.log(index)
+      this.fileList[index].edit = !this.fileList[index].edit
+    },
+    childByValue: function (currentPage, currentSize) {
+      // childValue就是子组件传过来的值
+      this.cPage = currentPage
+      this.csize = currentSize
+      console.log(this.cPage)
+      console.log(this.csize)
+      var _this = this
+      get({
+        json: true,
+        url: server.host + server.api.api_episode_list + '?page=' + this.cPage + '&rows=' + this.csize
+      }, function(response) {
+        console.log(response)
+        _this.total = response.data.total
+        _this.fileList = response.data.rows
+        // console.log(_this.total)
+        for (var i = 0; i < _this.fileList.length; i++) {
+          _this.$set(_this.fileList[i], 'edit', false)
+          _this.$set(_this.fileList[i], 'stop', false)
+          // this.$set(this.fileList[i], 'againa', '0')
+          _this.fileList[i].againa = '0'
+        }
+      })
+    }
+
+  }
+}
+</script>
+
+<style scoped>
+  .i-icon{
+      display: inline-block;
+      font-size: 0.58rem;
+      color: #64A3FF;
+      margin-left: 10px;
+  }
+
+  p{
+    display: inline-block;
+  }
+  
+  .form-group{
+    height: 1.33rem;
+    line-height: 1.33rem;
+  }
+
+  .input-group{
+    margin-right: 0.42rem;
+    width: 5.88rem;
+    display: inline-block;
+    }
+
+  .progress{
+    width:10rem;
+    display: inline-block;
+    font-size: 0.58rem;
+  }
+
+  .preserve{
+    color: #64A3FF;
+  }
+
+  .circle{
+    border-radius:45%;
+    width: 0.25rem;
+    height: 0.25rem;
+    display: inline-block;
+    margin-right: 0.42rem;
+  }
+  .operate{
+    color: #64A3FF;
+  }
+
+  .upload-again{
+    position: relative;
+  }
+
+  .upload-propt{
+    display: none;
+  }
+
+  .upload-again:hover .upload-propt{
+    display: block;
+    position: absolute;
+    top: 2.7vw;
+    right: -0.54vw;
+    background: url('../../../static/img/icon-bg.png') no-repeat center center;
+    width: 10vw;
+    height: 4.3vw;
+    background-size: 10vw 4.3vw;
+    border-radius:4px;
+    color:#fff;
+    font-size: 0.9vw;
+    padding: 0.7vw 1.1vw 0.7vw 1.3vw;
+    z-index: 999;
+  }
+  
+  .upload-again p{
+    color:#AAAAAA;
+  }
+
+  .upload-again div{
+    background: url('../../../static/img/icon_question.svg') no-repeat center 1px;
+    width: 30px;
+    height: 14px;
+    background-size: 14px 14px;
+    display: inline-block;
+  }
+</style>
+
+<style>
+.el-table .cell{
+  overflow: inherit;
+  padding-bottom: 0.42rem;
+  padding-top: 0.42rem;
+}
+
+</style>

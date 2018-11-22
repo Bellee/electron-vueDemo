@@ -1,0 +1,173 @@
+var Datastore = require('nedb')
+var path = require('path')
+var remote = require('electron')
+var async = require('async')
+var delString = require('./delString')
+
+var pool = {
+  'mv_origin': new Datastore({
+    filename: path.join(remote.app.getPath('userData'), 'db/mv_origin.db'),
+    autoload: true
+  }),
+  'mv_novideos': new Datastore({
+    filename: path.join(remote.app.getPath('userData'), 'db/mv_novideos.db'),
+    autoload: true
+  }),
+  'mv_resize': new Datastore({
+    filename: path.join(remote.app.getPath('userData'), 'db/mv_resize.db'),
+    autoload: true
+  }),
+  'mv_cut': new Datastore({
+    filename: path.join(remote.app.getPath('userData'), 'db/mv_cut.db'),
+    autoload: true
+  })
+}
+
+var insert = function(item, callback) {
+  // pool.query('INSERT INTO ' + this.tableName + ' SET ?', item, callback)
+  pool[this.tableName].insert(item, callback)
+}
+
+var insertIgnore = function(item, callback) {
+  // pool.query('INSERT IGNORE INTO ' + this.tableName + ' SET ?', item, callback)
+  var fieldKey = this.fieldKey
+  pool[this.tableName].count({ fieldKey: item[fieldKey] }, function (err, count) {
+    if (count == 0) {
+      pool[this.tableName].insert(item, callback)
+    }
+  })
+}
+
+var update = function(item, callback) {
+  var fieldKey = this.fieldKey
+  // pool.query('UPDATE ' + this.tableName + ' SET ? WHERE ' + fieldKey + ' = ?', [
+  //   item, item[fieldKey]
+  // ], callback)
+  pool[this.tableName].update({ fieldKey: item[fieldKey] }, item, {}, callback)
+}
+
+var replace = function(item, callback) {
+  // pool.query('REPLACE INTO ' + this.tableName + ' SET ?', item, callback)
+  var fieldKey = this.fieldKey
+  pool[this.tableName].update({ fieldKey: item[fieldKey] }, item, { upsert: true }, callback)
+}
+
+var del = function(item, callback) {
+  // pool.query('DELETE FROM ' + this.tableName + ' WHERE ' + delString.escape(item), callback)
+  var fieldKey = this.fieldKey
+  pool[this.tableName].remove({ fieldKey: item[fieldKey] }, { multi: true }, callback)
+}
+
+var duplicate = function(exampleItem, callback) {
+  // pool.query('REPLACE INTO ' + this.targetTableName + ' SELECT * FROM ' + this.srcTableName + ' WHERE ' + delString.escape(exampleItem), callback)
+  pool[this.srcTableName].find(delString.escape(exampleItem), function (err, docs) {
+    pool[this.targetTableName].insert(docs, callback)
+  })
+}
+
+module.exports.query = function (tableName, conds, callback) {
+  // pool.query(sqlString, values, callback)
+  pool[tableName].find(conds, callback)
+}
+
+module.exports.queryOne = function (tableName, conds, callback) {
+  // pool.query(sqlString, values, callback)
+  pool[tableName].findOne(conds, callback)
+}
+
+module.exports.truncateTable = function(tableName, callback) {
+  // pool.query('TRUNCATE TABLE ' + tableName, callback)
+  pool[tableName].remove({}, { multi: true }, callback)
+}
+
+module.exports.syncTable = function(tableName, items, callback) {
+  pool[this.tableName].remove({}, { multi: true }, function(err, result) {
+    if (err) {
+      callback(err, null)
+    } else {
+      async.map(items, insert.bind({ tableName: tableName }), function(err, results) {
+        if (err) {
+          callback(err, null)
+        } else {
+          var result = {
+            message: tableName + ' list sync done',
+            items: items
+          }
+          callback(null, result)
+        }
+      })
+    }
+  })
+}
+
+module.exports.updateTable = function(tableName, fieldKey, items, callback) {
+  async.map(items, update.bind({ tableName: tableName, fieldKey: fieldKey }), function(err, results) {
+    if (err) {
+      callback(err, null)
+    } else {
+      var result = {
+        message: tableName + ' updated done',
+        items: items
+      }
+      callback(null, result)
+    }
+  })
+}
+
+module.exports.delTable = function (tableName, fieldKey, items, callback) {
+  async.map(items, del.bind({ tableName: tableName, fieldKey: fieldKey }), function(err, results) {
+    if (err) {
+      callback(err, null)
+    } else {
+      callback(null, tableName + ' del done')
+    }
+  })
+}
+
+module.exports.replaceTable = function (tableName, fieldKey, items, callback) {
+  async.map(items, replace.bind({ tableName: tableName, fieldKey: fieldKey }), function(err, results) {
+    if (err) {
+      callback(err, null)
+    } else {
+      var result = {
+        message: tableName + ' replaced done',
+        items: items
+      }
+      callback(null, result)
+    }
+  })
+}
+
+module.exports.insertIgnoreTable = function (tableName, fieldKey, items, callback) {
+  async.map(items, insertIgnore.bind({ tableName: tableName, fieldKey: fieldKey }), function(err, results) {
+    if (err) {
+      callback(err, null)
+    } else {
+      var result = {
+        message: tableName + ' insert(ignore) done',
+        items: items
+      }
+      callback(null, result)
+    }
+  })
+}
+
+module.exports.moveTable = function(srcTableName, targetTableName, exampleItems, callback) {
+  async.map(exampleItems, duplicate.bind({ srcTableName: srcTableName, targetTableName: targetTableName }), function(err, results) {
+    if (err) {
+      callback(err, null)
+    } else {
+      async.map(exampleItems, del.bind({ tableName: srcTableName }), function(err, results) {
+        if (err) {
+          callback(err, null)
+        } else {
+          var result = {
+            message: 'move item from ' + srcTableName + ' to ' + targetTableName + ' done',
+            exampleItems: exampleItems
+          }
+          callback(null, result)
+        }
+      })
+    }
+  })
+}

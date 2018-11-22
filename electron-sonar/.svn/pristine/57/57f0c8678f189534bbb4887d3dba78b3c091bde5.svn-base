@@ -1,0 +1,379 @@
+<template>
+    <div id="file-unusual-page"> 
+      <div class="search-input">
+          <el-input
+            placeholder="请输入片名搜索"
+            suffix-icon="el-icon-search"
+            v-model="name"
+            @change="getFileList"
+            @keyup.enter.native="getFileList">
+          </el-input>
+      </div>
+    <!--上传中-->
+    <el-table
+        :data="fileUnusual"
+        style="width: 100%"
+        stripe
+        :header-cell-style="getRowClass">
+        <el-table-column
+        prop="name"
+        label="片源名称"
+        width="">
+         <template slot-scope="scope">
+          <p>{{scope.row.projectName}}</p>
+        </template>
+        </el-table-column>
+        <el-table-column
+        prop="divname"
+        label="分集名称"
+        width="">
+          <template slot-scope="scope">
+            <div v-if="!scope.row.edit" @click="penEdit(scope.$index, scope.row)">
+              <p>{{scope.row.episodeName}}</p>
+              <span class="i-icon">修改</span>
+            </div>
+            <div class="form-group" v-if="scope.row.edit">
+              <div class="input-group">
+                <el-input size="small" v-model="scope.row.episodeName"></el-input>
+              </div>
+              <span class="preserve" @click="penEdit(scope.$index, scope.row)">保存</span>
+            </div>
+        </template>
+        </el-table-column>      
+        <el-table-column
+        prop="status"
+        label="状态"
+        width=""
+        align="center">
+        <template slot-scope="scope">
+          <span class="circle" v-bind:style="scope.row.viewBackground"></span>
+          <span>{{scope.row.viewStatus}}</span>
+        </template>
+        </el-table-column>
+        <el-table-column
+        prop="reason"
+        label="进度"
+        width="">
+        <template slot-scope="scope" style="position: relative;">
+            <div class="progress-status" @click="scope.row.stepsVisible=!scope.row.stepsVisible" v-bind:style="{left: scope.row.leftData + 'px'}">{{scope.row.progressStatus}}</div>
+            <el-progress :percentage="70" class="progress" color="#FCB812"></el-progress>
+            <el-dialog
+              title="三生三世十里桃花-1"
+              :visible.sync="scope.row.stepsVisible"
+              width="90%"
+              :modal="false" class="sk-steps">
+              <ul class="steps">
+                <li>
+                  <span class="step"><i></i></span>
+                  <div class="content"><span>抽取音频文件</span><span>提取音频指纹 </span></div>
+                </li>
+                <li>
+                  <span class="step"><i></i></span>
+                  <div class="content"><span>上传音频文件至声码云</span></div>
+                </li>
+                <li>
+                  <span  class="step"><i></i></span>
+                  <div class="content"><span>视频转码</span></div>
+                </li>
+                <li class="active">
+                  <span class="step"><i></i></span>
+                  <div class="content"><span>视频切片中</span></div>
+                </li>
+                <li>
+                  <span class="step" ><i></i></span>
+                  <div class="content"><span>上传视频文件至七牛云</span></div>
+                </li>
+              </ul>
+              </el-dialog> 
+        </template>
+        </el-table-column>
+        <el-table-column
+        label="操作"
+        width="100">
+        <template slot-scope="scope">
+          <p class="operate" v-if="!scope.row.stop"  @click="handleEdit(scope.$index, scope.row)">重新切片</p>
+          <p class="operate" v-if="scope.row.stop" @click="handleEdit(scope.$index, scope.row)">暂停</p>
+        </template>
+        </el-table-column>
+    </el-table>
+    <file-page :message="total" v-on:childByValue="childByValue"></file-page>
+    </div>
+</template>
+
+<style>
+  .el-table .warning-row {
+    background: #efefef;
+  }
+
+  .el-table .success-row {
+    background: #efefef;
+  }
+</style>
+
+<script>
+import {get, post, httpRequestConstant} from '../../actions/utils/httpClient'
+import mockdata from '@/scripts/mockdata.js'
+import FilePage from '../components/FilePage'
+import server from '../../actions/config/server'
+import episode from '@/scripts/episode.js'
+export default {
+  name: 'file-unusual',
+  components: {FilePage},
+  data () {
+    return {
+      fileUnusual: [],
+      oldepisodeName: [],
+      total: 0,
+      rows: '',
+      cPage: 1,
+      csize: 10,
+      name: ''
+    }
+  },
+  created() {
+    this.getFileList()
+  },
+  filters: {
+    Status: function(data) {
+      switch (data) {
+        case 'A': return '待审核'
+        case 'B': return '审核通过'
+        case 'C': return '审核不通过'
+      }
+    },
+    Color: function(data) {
+      switch (data) {
+        case 'A': return 'background:red'
+        case 'B': return 'background:yellow'
+        case 'C': return 'background:green'
+      }
+    }
+  },
+  methods: {
+    getRowClass({ row, column, rowIndex, columnIndex }) {
+      if (rowIndex == 0) {
+        return 'background:#EFEFEF'
+      } else {
+        return ''
+      }
+    },
+    handleEdit (index, row) {
+      console.log(row)
+      console.log(index)
+      this.fileUnusual[index].stop = !this.fileUnusual[index].stop
+    },
+    penEdit (index, row) {
+      let _this = this
+      console.log(row)
+      console.log(index)
+      _this.fileUnusual[index].edit = !_this.fileUnusual[index].edit
+      if (_this.fileUnusual[index].edit == false) {
+        let episodeName = encodeURIComponent(_this.fileUnusual[index].episodeName)
+        let episodeId = _this.fileUnusual[index].projectEpisodeId
+        let projectId = _this.fileUnusual[index].projectId
+        console.log(episodeName)
+        console.log(episodeId)
+        console.log(projectId)
+        get({
+          json: true,
+          url: server.host + server.api.api_episode_updateEpisodeName + '?episodeName=' + episodeName + '&episodeId=' + episodeId + '&projectId=' + projectId
+        }, function(response) {
+          // 数据库中有两条相同数据冲突返回fail提示
+          if (response.result == 'fail') {
+            let message = response.message
+            _this.$message({
+              showClose: true,
+              message: message
+            })
+            // 并将原数据绑定在input框中
+            _this.fileUnusual[index].episodeName = _this.oldepisodeName[index]
+          }
+          console.log(response)
+        }, function(fail) {
+          console.log(fail)
+        })
+      } else {
+        // 点击修改时用数组暂存episodeName剧集名称
+        _this.oldepisodeName[index] = _this.fileUnusual[index].episodeName
+      }
+    },
+    childByValue: function (currentPage) {
+      // childValue就是子组件传过来的值
+      this.name = currentPage
+      console.log(this.name)
+    },
+    // 初始化时显示的列表信息
+    getFileList() {
+      var _this = this
+      episode.getEpisodeList(this.producerId, 3, this.name, this.cPage, this.csize, function(items) {
+        console.log(items)
+        _this.fileUnusual = items.rows
+        _this.total = items.total
+        for (var i = 0; i < _this.fileUnusual.length; i++) {
+          _this.$set(_this.fileUnusual[i], 'edit', false)
+          _this.$set(_this.fileUnusual[i], 'stop', false)
+          // this.$set(this.fileList[i], 'againa', '0')
+        }
+        // todo
+      })
+    }
+
+  }
+}
+</script>
+
+<style scoped>
+  .i-icon{
+    display: inline-block;
+    font-size: 0.58rem;
+    color: #64A3FF;
+    margin-left: 0.42rem;
+  }
+
+  p{
+    display: inline-block;
+  }
+  
+  .form-group{
+    height: 1.33rem;
+    line-height: 1.33rem;
+  }
+
+  .input-group{
+    margin-right: 0.42rem;
+    width: 5.88rem;
+    display: inline-block;
+    }
+
+  .preserve{
+      color: #64A3FF;
+  }
+
+  .progress{
+    width:9.2rem;
+    display: inline-block;
+  }
+
+  .circle{
+    border-radius:45%;
+    width: 0.25rem;
+    height: 0.25rem;
+    display: inline-block;
+    margin-right: 0.42rem;
+  }
+
+   /*切片进度提示*/
+  .progress-status{
+    color: #F5222D;
+    font-size: 0.5rem;
+    position: absolute;
+    top: 0.22rem;
+    display: inline-block;
+    background: url('../../../static/img/progress-status.png') no-repeat center center;
+    width: 3rem;
+    height: 1.25rem;
+    padding-top: 0.08rem;
+    background-size: 3rem 1.4rem;
+    text-align: center;
+  }
+
+  .operate{
+    color: #64A3FF;
+  }
+
+  .steps{
+    list-style: none;
+    font-size: 0;
+    margin-left: 3.25rem;
+  }
+
+  .steps li{
+    display: inline-block;
+    width: 20%;
+    font-size: 0.5rem;
+  }
+
+  .steps li .step{
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    background: #fff;
+    border-radius: 50%;
+    border: 1px solid #000;
+    display: flex;
+    justify-content:center;
+    align-items:Center;
+  }
+
+  .steps li .step i{
+    display: inline-block;
+    width: 0.33rem;
+    height: 0.33rem;
+    background: #64A3FF;
+    border-radius: 50%;
+    vertical-align:middle;
+  }
+
+/* 选中之后的圆圈为灰色 */
+  .steps li.active ~ li i {
+  background-color: #BFBFBF;
+ }
+
+  .steps li{
+    position: relative;
+  }
+
+  .steps .active .step i{
+    background: #F5222D;
+  }
+
+  .steps li.active .content{
+    color:#F5222D;
+  }
+
+  .steps li ~ li:after {
+  content: '';
+  width: 93%;
+  height: 2px;
+  background-color: #64A3FF;
+  position: absolute;
+  left: -93%;
+  top: 0.2rem;
+}
+
+.steps li.active::after{
+  background-color: #64A3FF;
+}
+
+/* 选中之后的连线为灰色 */
+.steps li.active ~ li:after {
+  background-color: #BFBFBF;
+}
+
+.steps li .content{
+  position: absolute;
+  left:-45%;
+  top: 1rem;
+  width: 100%;
+  text-align:center;
+}
+
+.steps li .content span{
+  display: block;
+}
+</style>
+
+<style>
+.sk-steps .el-dialog__header,.sk-steps .el-dialog__body{
+  background: #595959;
+  color: #fff;
+}
+.sk-steps .el-dialog__body{
+  height: 5.2rem;
+}
+
+.sk-steps .el-dialog__title{
+  color: #fff;
+  font-size: 0.66rem;
+}
+</style>

@@ -1,0 +1,90 @@
+<template>
+    <el-dialog
+    title="监测到新版本"
+    :visible.sync="dialogVisible"
+    width="70%"
+    background="#efefef"
+    class="edition-renew" center>
+    <span>
+      <el-row>
+        <el-col :span="4">
+          <i class="edition-logo"></i>
+        </el-col>
+        <el-col :span="20">
+          <P>检测到新版本，是否更新？</P>
+          <p>版本号：1.0.5</p>
+        </el-col>
+      </el-row>
+      <el-progress :percentage="70"></el-progress>
+      <div>
+        <p>更新说明</p>
+        <ol class="edition-new">
+          <li>优化上传体验</li>
+          <li>修复已知bug，提升客户端稳定性</li>
+        </ol>
+      </div>
+    </span>
+    <div class="edition-footer">
+        <el-button @click="dialogVisible = false">稍后提示</el-button>
+        <el-button type="primary" @click="dialogVisible = false">立即更新</el-button>
+    </div>
+    </el-dialog>
+</template>
+<script>
+  export default {
+    name: 'renew',
+    data() {
+      return {
+        dialogVisible: true
+      }
+    },
+    methods: {
+      handleClose(done) {
+        this.$confirm('确认关闭？')
+          .then(_ => {
+            done()
+          })
+          .catch(_ => {})
+      }
+    }
+  }
+</script>
+
+<style>
+.edition-logo{
+  display: inline-block;
+   background: url('../../../static/img/home.png') no-repeat center center;
+    width: 8vw;
+    height: 80px;
+    background-size: 60px 60px;
+}
+
+.edition-renew{
+  background-color: #fff;
+}
+.edition-renew .el-dialog{
+  background-color: #efefef;
+}
+
+.edition-renew .el-dialog__header{
+  background: #dedede;
+  padding: 5px;
+}
+
+.edition-renew .el-dialog__headerbtn{
+  top:10px;
+}
+.edition-new{
+  border: #000 solid 1px;
+  padding-top: 10px;
+  padding-bottom: 50px;
+  background-color: #fff;
+}
+
+.edition-footer{
+  width: 100%;
+  overflow: hidden;
+  text-align: right;
+}
+
+</style>

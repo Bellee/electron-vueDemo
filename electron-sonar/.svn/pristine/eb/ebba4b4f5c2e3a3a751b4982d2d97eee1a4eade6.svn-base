@@ -1,0 +1,26 @@
+<template>
+  <div id="renew">
+      <update></update>
+  </div>
+</template>
+
+<script>
+import Update from '../components/Update'
+export default {
+  name: 'renew',
+  components: {Update}
+}
+</script>
+
+<style>
+  webkit,
+  ::-webkit-scrollbar {
+    width: 0;
+  }
+  body {
+    background: #F2F2F2;
+    margin: 0;
+    height: 100%;
+    font-family: "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","微软雅黑",Arial,sans-serif;
+  }
+</style>

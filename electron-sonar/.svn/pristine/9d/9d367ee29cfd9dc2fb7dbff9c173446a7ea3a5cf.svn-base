@@ -1,0 +1,713 @@
+var db = require('../lib/db_none_transational')
+var ffmpeg = require('../lib/ffmpeg')
+var moment = require('moment')
+var acrcloud = require('../lib/acrcloud')
+var qiniu = require('../lib/qiniu')
+var async = require('async')
+var ffmpegConfig = require('../config/ffmpeg')
+var acrcloudConfig = require('../config/acrcloud')
+var qiniuConfig = require('../config/qiniu')
+var scheduleOptions = require('../config/schedule')
+var fs = require('fs-extra')
+
+var cut = (item, length, progressCallback, callback) => {
+  ffmpeg.execution(item.file_origin_path, item.file_path, item.cut_options, 20 / length, progressCallback, (err, result) => {
+    progressCallback(4, 20 / length)
+    if (err) {
+      callback(err, null)
+    } else {
+      // 保存信息到数据库
+      item.upload_status = 0
+      item.created_at = new Date()
+      item.cut_options = JSON.stringify(item.cut_options)
+      db.replaceTable('mv_cut', 'file_name', [item], (err, result) => {
+        if (err) {
+          callback(err, null)
+        } else {
+          callback(null, result[0])
+        }
+      })
+    }
+  })
+}
+
+var updateOrgStatus = (file_title, status, proc_status, callback) => {
+  var cond = {}
+  cond['file_title'] = file_title
+  db.queryOne('mv_origin', cond, (err, row) => {
+    if (err) {
+      callback(err, null)
+    } else {
+      // 保存信息到数据库
+      row.status = status
+      row.proc_status = proc_status
+      row.updated_at = new Date()
+      db.replaceTable('mv_origin', '_id', [row], callback)
+    }
+  })
+}
+
+var updateUploadStatus = (file_title, callback) => {
+  var cond = {}
+  cond['file_title'] = file_title
+  db.queryOne('mv_resize', cond, (err, row) => {
+    if (err) {
+      callback(err, null)
+    } else {
+      // 保存信息到数据库
+      row.upload_status = 10
+      row.updated_at = new Date()
+      db.replaceTable('mv_resize', '_id', [row], callback)
+    }
+  })
+}
+
+var upload = (row, progressCallback, callback) => {
+  acrcloud.uploadAudio({
+    endpoint: '/v1/audios',
+    data_type: acrcloudConfig.dataType,
+    bucket_name: row.acr_bucket_name,
+    audio_file: acrcloudConfig.dataType == 'fingerprint' && row.file_fingerprint
+      ? row.file_fingerprint
+      : row.file_path,
+    audio_id: row._id,
+    title: row.file_title
+  }, (err, httpResponse, body) => {
+    progressCallback(2, 5)
+    if (err) {
+      updateOrgStatus(row.file_title, -1, 2)
+      callback(err, null)
+    } else if (!(httpResponse.statusCode == 200 || httpResponse.statusCode == 201)) {
+      updateOrgStatus(row.file_title, -1, 2)
+      callback(body, null)
+    } else {
+      updateOrgStatus(row.file_title, 1, 3)
+      row.acr_id = body.acr_id
+      row.acr_title = body.title
+      row.acr_state = body.state
+      row.acr_audio_id = body.audio_id
+      row.upload_type = acrcloudConfig.dataType
+      row.upload_status = 1
+      row.updated_at = new Date()
+      db.replaceTable('mv_novideos', '_id', [row], callback)
+    }
+  })
+}
+
+var userId = 5470
+module.exports.init = (user_id) => {
+  // 账号ID
+  userId = user_id
+  // 确保目录的存在
+  var dir = ffmpegConfig.ffmpegOs().basePath.origin.replace('${acr_bucket_name}', 'd1')
+  fs.ensureDir(dir, function (err) {
+    if (err) {
+      console.log('ensure dir error:', err)
+    }
+  })
+  dir = ffmpegConfig.ffmpegOs().basePath.novideo
+  fs.ensureDir(dir, function (err) {
+    if (err) {
+      console.log('ensure dir error:', err)
+    }
+  })
+  dir = ffmpegConfig.ffmpegOs().basePath.resize
+  fs.ensureDir(dir, function (err) {
+    if (err) {
+      console.log('ensure dir error:', err)
+    }
+  })
+  dir = ffmpegConfig.ffmpegOs().basePath.fingerprint
+  fs.ensureDir(dir, function (err) {
+    if (err) {
+      console.log('ensure dir error:', err)
+    }
+  })
+  dir = ffmpegConfig.ffmpegOs().basePath.cut
+  fs.ensureDir(dir, function (err) {
+    if (err) {
+      console.log('ensure dir error:', err)
+    }
+  })
+}
+
+module.exports.addOrigin = (src, fileTitle, projectEpisodeId, progressCallback, callback) => {
+  progressCallback(1, 1)
+  var filePath = fileTitle + '.mp4'
+  var dest = ffmpegConfig.ffmpegOs().basePath.origin.replace('${acr_bucket_name}', 'd1') + filePath
+  fs.copy(src, dest, function(err) {
+    if (err) {
+      console.log('copy video error:', err)
+    } else {
+      var item = {
+        project_episode_id: projectEpisodeId,
+        instance_id: userId,
+        file_path: filePath,
+        file_title: fileTitle,
+        acr_bucket_name: 'd1',
+        resize: '360p-16x9',
+        // -1上传异常 0待上传 1上传中 2上传成功 9暂停
+        status: 1,
+        // 0未开始 1音频提取 2音频上传 3转码 4切片 5切片上传
+        proc_status: 1,
+        novideo_status: 0,
+        resize_status: 0,
+        cut_status: 0,
+        created_at: new Date()
+      }
+      db.replaceTable('mv_origin', 'file_title', [item], (err, result) => {
+        callback(err, result)
+      })
+    }
+  })
+}
+
+module.exports.novideo = (row, progressCallback, callback) => {
+  async.waterfall([
+    // 先获取基本信息
+    (callback) => {
+      var path = ffmpegConfig.ffmpegOs().basePath.origin.replace('${acr_bucket_name}', row.acr_bucket_name) + row.file_path
+      ffmpeg.info(ffmpegConfig.ffmpegOs().basePath.origin.replace('${acr_bucket_name}', row.acr_bucket_name) + row.file_path, callback)
+    },
+    // 抽取音频
+    (metadata, callback) => {
+      var fileName = row.file_path.split('.')[0]
+      var extention = row.file_path.split('.')[1]
+      var options = {
+        'noVideo': true,
+        'audioCodec': 'copy'
+      }
+      ffmpeg.execution(ffmpegConfig.ffmpegOs().basePath.origin.replace('${acr_bucket_name}', row.acr_bucket_name) + row.file_path, ffmpegConfig.ffmpegOs().basePath.novideo + fileName + '.m4a', options, 2, progressCallback, (err, result) => {
+        if (err) {
+          // callback(err, null);
+          row.status = -1
+          row.proc_status = 1
+          row.novideo_status = -1
+          db.replaceTable('mv_origin', '_id', [row], callback)
+        } else {
+          // 保存信息到数据库
+          var options = {
+            fileName: fileName,
+            inputFile: ffmpegConfig.ffmpegOs().basePath.novideo + fileName + '.m4a',
+            outputFile: ffmpegConfig.ffmpegOs().basePath.fingerprint + fileName + '.acr'
+          }
+          acrcloud.createFingerprint(options, (err, stdout, stderr) => {
+            progressCallback(1, 3)
+            if (err) {
+              console.log('acrcloud fingerprint error:', err)
+              row.status = -1
+              row.proc_status = 1
+              row.novideo_status = -2
+              db.replaceTable('mv_origin', '_id', [row], callback)
+            } else {
+              var item = {
+                project_episode_id: row.project_episode_id,
+                instance_id: userId,
+                file_path: ffmpegConfig.ffmpegOs().basePath.novideo + fileName + '.m4a',
+                file_name: fileName + '.m4a',
+                file_fingerprint: ffmpegConfig.ffmpegOs().basePath.fingerprint + fileName + '.acr',
+                file_title: row.file_title,
+                acr_bucket_name: row.acr_bucket_name,
+                upload_status: 0,
+                created_at: new Date()
+              }
+              db.replaceTable('mv_novideos', 'file_title', [item], (err, result) => {
+                if (err) {
+                  callback(err, null)
+                } else {
+                  row.status = 1
+                  row.proc_status = 2
+                  row.novideo_status = 1
+                  row.updated_at = new Date()
+                  db.replaceTable('mv_origin', '_id', [row], (err, org) => {
+                    callback(null, result)
+                  })
+                }
+              })
+            }
+          })
+        }
+      })
+    }
+  ], (err, result) => {
+    if (err) {
+      if (err.message.indexOf('No such file or directory') != -1) {
+        // 源文件缺失
+        row.status = -1
+        row.proc_status = 1
+        row.novideo_status = -2
+        db.replaceTable('mv_origin', '_id', [row], callback)
+      } else if (err.message.indexOf('Invalid data found when processing input') != -1) {
+        // 源文件缺失
+        row.status = -1
+        row.proc_status = 1
+        row.novideo_status = -1
+        db.replaceTable('mv_origin', '_id', [row], callback)
+      } else {
+        callback(err, null)
+      }
+    } else {
+      callback(null, result)
+    }
+  })
+}
+
+module.exports.uploadACRCloud = (row, progressCallback, callback) => {
+  progressCallback(2, 1)
+  if (acrcloudConfig.dataType == 'fingerprint' && !row.file_fingerprint) {
+    // 重新生成指纹文件
+    var fileName = row.file_name.split('.')[0]
+    var options = {
+      fileName: fileName,
+      inputFile: row.file_path,
+      outputFile: ffmpegConfig.ffmpegOs().basePath.fingerprint + fileName + '.acr'
+    }
+    acrcloud.createFingerprint(options, (err, stdout, stderr) => {
+      if (err) {
+        updateOrgStatus(row.file_title, -1, 2)
+        callback(err, null)
+      } else {
+        row.file_fingerprint = options.outputFile
+        upload(row, progressCallback, callback)
+      }
+    })
+  } else {
+    upload(row, progressCallback, callback)
+  }
+}
+
+module.exports.asyncACRCloud = (row, callback) => {
+  acrcloud.asyncAudio({
+    endpoint: '/v1/audios/' + row.acr_id
+  }, (err, httpResponse, body) => {
+    if (err) {
+      callback(err, null)
+    } else if (!(httpResponse.statusCode == 200 || httpResponse.statusCode == 201)) {
+      if (body.status == 500) {
+        // 内部错误
+        row.acr_state = -1
+        db.replaceTable('mv_novideos', '_id', [row], callback)
+      } else {
+        callback(body, null)
+      }
+    } else {
+      row.acr_sid = body.id
+      row.acr_bucket_id = body.bucket_id
+      row.acr_duration = body.duration
+      row.acr_state = body.state
+      row.updated_at = new Date()
+      db.replaceTable('mv_novideos', '_id', [row], callback)
+    }
+  })
+}
+
+module.exports.resize = (row, progressCallback, callback) => {
+  progressCallback(3, 1)
+  // console.log ('row = ' ,row);
+  async.waterfall([
+    // 先获取基本信息
+    (callback) => {
+      ffmpeg.info(ffmpegConfig.ffmpegOs().basePath.origin.replace('${acr_bucket_name}', row.acr_bucket_name) + row.file_path, callback)
+    },
+    // 降低码率
+    (metadata, callback) => {
+      var fileName = row.file_path.split('.')[0]
+      var extention = row.file_path.split('.')[1]
+      if (metadata.streams.length >= 2 && metadata.streams[0].codec_type == 'video') {
+        console.log('开始转码')
+        var vidoeStream = metadata.streams[0]
+        var audioStream = metadata.streams[1]
+        var width = vidoeStream.width
+        var height = vidoeStream.height
+        var resize = ffmpegConfig.resize[row.resize]
+        // 源文件码率大于目标码率，则降码处理
+        var options = {
+          audioBitrate: vidoeStream.bit_rate > resize.videoBitrate * 1024
+            ? resize.videoBitrate
+            : 0,
+          videoBitrate: audioStream.bit_rate > resize.audioBitrate * 1024
+            ? resize.audioBitrate
+            : 0
+        }
+        if (resize && width > resize.width && height > resize.height) {
+          // 源文件宽高大与目标宽高
+          console.log('源文件宽高大与目标宽高')
+          if (width * resize.height >= height * resize.width) {
+            // 长和宽必须是偶数
+            var fixedWidth = 2 * Math.round(width * resize.height / (height * 2))
+            options.size = fixedWidth + 'x' + resize.height
+          } else {
+            // 长和宽必须是偶数
+            var fixedHeight = 2 * Math.round(height * resize.width / (width * 2))
+            options.size = resize.width + 'x' + fixedHeight
+          }
+        } else {
+          // 源文件宽高小于目标宽高，判断是否要强制转码
+          console.log('源文件宽高小于目标宽高')
+          options.size = width + 'x' + height
+          if (!ffmpegConfig.resize.forceResize) {
+            // 不强制转码
+            console.log('不强制转码')
+            var item = {
+              project_episode_id: row.project_episode_id,
+              instance_id: userId,
+              file_path: ffmpegConfig.ffmpegOs().basePath.origin.replace('${acr_bucket_name}', row.acr_bucket_name) + row.file_path,
+              file_name: row.file_path,
+              file_title: row.file_title,
+              cut_status: 0,
+              upload_status: 0,
+              created_at: new Date()
+            }
+            db.replaceTable('mv_resize', 'file_title', [item], (err, result) => {
+              if (err) {
+                callback(err, null)
+              } else {
+                row.duration = metadata.format.duration
+                row.size = metadata.format.size
+                row.start_time = metadata.format.start_time
+                row.bit_rate = metadata.format.bit_rate
+                row.status = 1
+                row.proc_status = 4
+                row.resize_status = 1
+                row.updated_at = new Date()
+                db.replaceTable('mv_origin', '_id', [row], (err, org) => {
+                  callback(null, result)
+                })
+              }
+            })
+            return
+          }
+        }
+        ffmpeg.execution(ffmpegConfig.ffmpegOs().basePath.origin.replace('${acr_bucket_name}', row.acr_bucket_name) + row.file_path, ffmpegConfig.ffmpegOs().basePath.resize + fileName + '-' + options.size + '.mp4', options, 20, progressCallback, (err, result) => {
+          if (err) {
+            // callback(err, null);
+            row.status = -1
+            row.proc_status = 3
+            row.resize_status = -1
+            db.replaceTable('mv_origin', '_id', [row], callback)
+          } else {
+            // 保存信息到数据库
+            var item = {
+              project_episode_id: row.project_episode_id,
+              instance_id: userId,
+              file_path: ffmpegConfig.ffmpegOs().basePath.resize + fileName + '-' + options.size + '.mp4',
+              file_name: fileName + '-' + options.size + '.mp4',
+              file_title: row.file_title,
+              cut_status: 0,
+              upload_status: 0,
+              created_at: new Date()
+            }
+            db.replaceTable('mv_resize', 'file_title', [item], (err, result) => {
+              if (err) {
+                callback(err, null)
+              } else {
+                row.duration = metadata.format.duration
+                row.size = metadata.format.size
+                row.start_time = metadata.format.start_time
+                row.bit_rate = metadata.format.bit_rate
+                row.status = 1
+                row.proc_status = 4
+                row.resize_status = 1
+                row.updated_at = new Date()
+                db.replaceTable('mv_origin', '_id', [row], (err, org) => {
+                  callback(null, result)
+                })
+              }
+            })
+          }
+        })
+      } else {
+        // 非视频文件
+        console.log('streams length = ', metadata.streams.length, 'codec_type = ', metadata.streams[0].codec_type)
+        console.log('非视频文件, row = ', row)
+        row.status = -1
+        row.proc_status = 3
+        row.resize_status = -1
+        db.replaceTable('mv_origin', '_id', [row], callback)
+        // callback(null, {
+        //   message: '非视频文件',
+        //   items: []
+        // });
+      }
+    }
+  ], (err, result) => {
+    if (err) {
+      callback(err, null)
+    } else {
+      callback(null, result)
+    }
+  })
+}
+
+module.exports.cut = (row, progressCallback, callback) => {
+  progressCallback(4, 1)
+  async.waterfall([
+    // 先获取基本信息
+    (callback) => {
+      ffmpeg.info(row.file_path, callback)
+    },
+    // 剪切
+    (metadata, callback) => {
+      var fileName = row.file_name.split('.')[0]
+      if (metadata.format) {
+        row.duration = metadata.format.duration
+        row.size = metadata.format.size
+        row.start_time = metadata.format.start_time
+        row.bit_rate = metadata.format.bit_rate
+        var block = (row.duration - ffmpegConfig.cut.duration) % ffmpegConfig.cut.interval
+          ? Math.round((row.duration - ffmpegConfig.cut.duration) / ffmpegConfig.cut.interval) + 1
+          : (row.duration - ffmpegConfig.cut.duration) / ffmpegConfig.cut.interval + 1
+        var opts = []
+        for (var i = 0; i < block; i++) {
+          var item = {
+            project_episode_id: row.project_episode_id,
+            instance_id: userId,
+            file_origin_path: row.file_path,
+            file_origin_name: row.file_name,
+            file_origin_title: row.file_title,
+            file_path: ffmpegConfig.ffmpegOs().basePath.cut + fileName + '-cut-' + ffmpegConfig.cut.duration + '-' + ffmpegConfig.cut.interval + '-' + i + '.mp4',
+            file_name: fileName + '-cut-' + ffmpegConfig.cut.duration + '-' + ffmpegConfig.cut.interval + '-' + i + '.mp4',
+            cut_options: {
+              startTime: i * ffmpegConfig.cut.interval,
+              duration: (i != block - 1)
+                ? ffmpegConfig.cut.duration
+                : 0
+            }
+          }
+          opts.push(item)
+        }
+        // console.log(item)
+        db.deleteTable('mv_cut', { 'file_origin_name': row.file_name }, (err, rows) => {
+          // 去重过滤 file_name
+          // var fileNames = rows.map(row => row.file_name)
+          // opts = opts.filter(item => fileNames.indexOf(item.file_name) == -1)
+          async.mapLimit(opts, scheduleOptions.cut.cutlimit, (opt, callback) => { cut(opt, opts.length, progressCallback, callback) }, (err, results) => {
+            // 全部切割完毕后更新resize文件状态
+            row.cut_status = 1
+            row.updated_at = new Date()
+            db.replaceTable('mv_resize', '_id', [row], (err, org) => {
+              callback(null, results)
+            })
+          })
+        })
+      } else {
+        callback(null, '未获取到视频格式信息')
+      }
+    }
+  ], (err, result) => {
+    if (err) {
+      updateOrgStatus(row.file_title, -1, 4)
+      if (err.message.indexOf('No such file or directory') != -1) {
+        // 源文件缺失
+        row.cut_status = -2
+        db.replaceTable('mv_resize', '_id', [row], callback)
+      } else if (err.message.indexOf('Invalid data found when processing input') != -1) {
+        // 源文件缺失
+        row.cut_status = -1
+        db.replaceTable('mv_resize', '_id', [row], callback)
+      } else {
+        callback(err, null)
+      }
+    } else {
+      updateOrgStatus(row.file_title, 1, 5)
+      callback(null, result)
+    }
+  })
+}
+
+module.exports.uploadQiniu = (row, length, progressCallback, callback) => {
+  qiniu.uploadFile(row.file_name, row.file_path, null, (err, body, info) => {
+    progressCallback(5, 40 / length)
+    if (err) {
+      updateOrgStatus(row.file_origin_title, -1, 5)
+      callback(err, null)
+    } else {
+      if (body && body.hash && body.key) {
+        row.qiniu_zone = qiniuConfig.zone
+        row.qiniu_bucket = qiniuConfig.bucket
+        row.qiniu_hash = body.hash
+        row.qiniu_key = body.key
+        row.upload_status = 1
+        row.updated_at = new Date()
+        db.replaceTable('mv_cut', '_id', [row], callback)
+      } else {
+        updateOrgStatus(row.file_origin_title, -1, 5)
+        callback(null, 'qiniu upload error:' + body)
+      }
+    }
+  })
+}
+
+module.exports.uploadQiniuComplete = (row, progressCallback, callback) => {
+  // 更新上传状态
+  var cond = {}
+  cond['file_origin_title'] = row.file_title
+  cond['upload_status'] = 0
+  db.queryOne('mv_cut', cond, (err, info) => {
+    if (info == null) {
+      updateUploadStatus(row.file_title, (err, info) => {
+        updateOrgStatus(row.file_title, 2, 5, (err, info) => {
+          db.compactDatafile()
+          progressCallback(6, 0)
+          callback(null, 'success')
+        })
+      })
+    }
+  })
+}
+
+module.exports.feimuCut = (row, callback) => {
+  var uploadItems = []
+  async.waterfall([
+    // 先获取基本信息
+    (callback) => {
+      ffmpeg.info(row.file_resize_path, callback)
+    },
+    // 剪切
+    (metadata, callback) => {
+      var dateStr = moment().format('YYYYMMDDHHmmssSSS')
+      var file_name = row.member_id + '-' + dateStr + '.mp4'
+      var jpg_name = row.member_id + '-' + dateStr + '0.jpg'
+      var gif_name = row.member_id + '-' + dateStr + '0.gif'
+      var options = {
+        'startTime': row.start,
+        'duration': row.end - row.start
+      }
+      ffmpeg.execution(row.file_resize_path, ffmpegConfig.ffmpegOs().basePath.feimuCut + file_name, options, null, null, (err, result) => {
+        if (err) {
+          row.cut_status = -1
+          db.replaceTable('mv_feimu', '_id', [row], callback)
+        } else {
+          row.file_path = ffmpegConfig.ffmpegOs().basePath.feimuCut + file_name
+          row.jpg_name = jpg_name
+          row.jpg_path = ffmpegConfig.ffmpegOs().basePath.feimuCutJPG + jpg_name
+          row.gif_name = gif_name
+          row.gif_path = ffmpegConfig.ffmpegOs().basePath.feimuCutGIF + gif_name
+          var item = {
+            project_episode_id: row.project_episode_id,
+            instance_id: userId,
+            feimu_code: row.feimu_code,
+            file_name: file_name,
+            file_path: row.file_path,
+            qiniu_zone: qiniuConfig.feimu.zone,
+            qiniu_bucket: qiniuConfig.feimu.bucket.cut,
+            created_at: new Date()
+          }
+          uploadItems.push(item)
+          ffmpeg.info(row.file_path, callback)
+        }
+      })
+    },
+    // jpg图
+    (metadata, callback) => {
+      var options = {
+        frames: 1
+      }
+      ffmpeg.execution(row.file_path, row.jpg_path, options, null, null, (err, result) => {
+        if (err) {
+          row.cut_status = -1
+          db.replaceTable('mv_feimu', '_id', [row], callback)
+        } else {
+          var item = {
+            project_episode_id: row.project_episode_id,
+            instance_id: userId,
+            feimu_code: row.feimu_code,
+            file_name: row.jpg_name,
+            file_path: row.jpg_path,
+            qiniu_zone: qiniuConfig.feimu.zone,
+            qiniu_bucket: qiniuConfig.feimu.bucket.jpg,
+            created_at: new Date()
+          }
+          uploadItems.push(item)
+          callback(null, metadata)
+        }
+      })
+    },
+    // gif图
+    (metadata, callback) => {
+      var options = {
+        'fps': ffmpegConfig.thumbnail.fps,
+        'duration': ffmpegConfig.thumbnail.duration
+      }
+      var vidoeStream = metadata.streams[0]
+      var width = vidoeStream.width
+      var height = vidoeStream.height
+      var resize = ffmpegConfig.thumbnail.resize
+      // 长和宽必须是偶数
+      if (resize && width > resize.width && height > resize.height) {
+        if (width * resize.height >= height * resize.width) {
+          var fixedWidth = 2 * Math.round(width * resize.height / (height * 2))
+          options.size = fixedWidth + 'x' + resize.height
+        } else {
+          var fixedHeight = 2 * Math.round(height * resize.width / (width * 2))
+          options.size = width + 'x' + fixedHeight
+        }
+      } else {
+        options.size = width + 'x' + height
+      }
+      ffmpeg.execution(row.file_path, row.gif_path, options, null, null, (err, result) => {
+        if (err) {
+          row.cut_status = -1
+          db.replaceTable('mv_feimu', '_id', [row], callback)
+        } else {
+          var item = {
+            project_episode_id: row.project_episode_id,
+            instance_id: userId,
+            feimu_code: row.feimu_code,
+            file_name: row.gif_name,
+            file_path: row.gif_path,
+            qiniu_zone: qiniuConfig.feimu.zone,
+            qiniu_bucket: qiniuConfig.feimu.bucket.jpg,
+            created_at: new Date()
+          }
+          uploadItems.push(item)
+          db.replaceTable('mv_feimu_upload', 'feimu_code', uploadItems, (err, results) => {
+            if (err) {
+              row.cut_status = -2
+              db.replaceTable('mv_feimu', '_id', [row], callback)
+            } else {
+              row.cut_status = 1
+              row.updated_at = new Date()
+              db.replaceTable('mv_feimu', '_id', [row], callback)
+            }
+          })
+        }
+      })
+    }
+  ], (err, result) => {
+    if (err) {
+      if (err.message.indexOf('No such file or directory') != -1) {
+        // 源文件缺失
+        row.cut_status = -2
+        db.replaceTable('mv_feimu', '_id', [row], callback)
+      } else if (err.message.indexOf('Invalid data found when processing input') != -1) {
+        // 源文件缺失
+        row.cut_status = -1
+        db.replaceTable('mv_feimu', '_id', [row], callback)
+      } else {
+        callback(err, null)
+      }
+    } else {
+      callback(null, result)
+    }
+  })
+}
+
+module.exports.uploadFiemuCut = (row, callback) => {
+  qiniu.uploadFile(row.file_name, row.file_path, row.qiniu_bucket, (err, body, info) => {
+    if (err) {
+      callback(err, null)
+    } else {
+      if (body && body.hash && body.key) {
+        row.qiniu_zone = row.qiniu_zone
+        row.qiniu_bucket = row.qiniu_bucket
+        row.qiniu_hash = body.hash
+        row.qiniu_key = body.key
+        row.updated_at = new Date()
+        db.replaceTable('mv_feimu_upload', '_id', [row], callback)
+      } else {
+        callback(null, 'qiniu upload error:' + body)
+      }
+    }
+  })
+}

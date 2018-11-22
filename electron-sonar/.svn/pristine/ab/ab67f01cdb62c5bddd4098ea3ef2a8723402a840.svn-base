@@ -1,0 +1,194 @@
+{
+  "db": {
+    "connectionLimit": 20,
+    "host": "localhost",
+    "user": "root",
+    "password": "",
+    "database": "feimu-cut"
+  },
+  "acrcloud": {
+    "dataType":"fingerprint",
+    "console": {
+      "host": "cn-api.acrcloud.com",
+      "signature_version": "1",
+      "secure": true,
+      "access_key": "15b2bcdf119b12e1",
+      "access_secret": "992b6a1b26e569f367bd604095654812"
+    },
+    "fingerprint" : {
+      "mac": {
+        "cmd": "/usr/local/bin/acrcloud_extr_mac"
+      },
+      "win": {
+        "cmd": "D:\\Hypering\\git_new\\electron-vue-demo\\build\\bin\\acrcloud\\acrcloud_extr_win.exe"
+      },
+      "linux": {
+        "cmd": "/usr/local/bin/acrcloud_extr_linux"
+      }
+    }
+  },
+  "ffmpegOs": {
+      "mac": {
+        "ffmpegPath": "/usr/local/bin/ffmpeg/ffmpeg",
+        "ffprobePath": "/usr/local/bin/ffprobe/ffprobe",
+        "basePath": {
+          "origin": "./daily/mv-origin/${acr_bucket_name}/",
+          "novideo": "./daily/mv-novideo/",
+          "resize": "./daily/mv-resize/",
+          "fingerprint": "./daily/mv-fingerprint/",
+          "cut": "./daily/mv-cut/"
+        }
+      },
+      "win": {
+        "ffmpegPath": "D:\\Hypering\\git_new\\electron-vue-demo\\build\\bin\\ffmpeg\\ffmpeg.exe",
+        "ffprobePath": "D:\\Hypering\\git_new\\electron-vue-demo\\build\\bin\\ffprobe\\ffprobe.exe",
+        "basePath": {
+          "origin": "d:\\sonar\\daily\\mv-origin\\${acr_bucket_name}\\",
+          "novideo": "d:\\sonar\\daily\\mv-novideo\\",
+          "resize": "d:\\sonar\\daily\\mv-resize\\",
+          "fingerprint": "d:\\sonar\\daily\\mv-fingerprint\\",
+          "cut": "d:\\sonar\\daily\\mv-cut\\"
+        }
+      },
+      "linux": {
+        "ffmpegPath": "/usr/local/bin/ffmpeg/ffmpeg",
+        "ffprobePath": "/usr/local/bin/ffprobe/ffprobe",
+        "basePath": {
+          "origin": "/usr/local/daily/mv-origin/${acr_bucket_name}/",
+          "novideo": "/usr/local/daily/mv-novideo/",
+          "resize": "/usr/local/daily/mv-resize/",
+          "fingerprint": "/usr/local/daily/mv-fingerprint/",
+          "cut": "/usr/local/daily/mv-cut/"
+        }
+      }
+  },
+  "ffmpeg": {
+    "resize": {
+      "forceResize":false,
+      "1080p": {
+        "width": 1920,
+        "height": 1080,
+        "audioBitrate": 160,
+        "videoBitrate": 5400
+      },
+      "720p": {
+        "width": 1280,
+        "height": 720,
+        "audioBitrate": 160,
+        "videoBitrate": 2400
+      },
+      "480p-16x9": {
+        "width": 854,
+        "height": 480,
+        "audioBitrate": 128,
+        "videoBitrate": 1200
+      },
+      "480p-4x3": {
+        "width": 640,
+        "height": 480,
+        "audioBitrate": 128,
+        "videoBitrate": 900
+      },
+      "360p-16x9": {
+        "width": 640,
+        "height": 360,
+        "audioBitrate": 128,
+        "videoBitrate": 720
+      },
+      "360p-4x3": {
+        "width": 480,
+        "height": 360,
+        "audioBitrate": 128,
+        "videoBitrate": 600
+      },
+      "320x240": {
+        "width": 320,
+        "height": 240,
+        "audioBitrate": 64,
+        "videoBitrate": 300
+      }
+    },
+    "cut": {
+      "interval": 15,
+      "duration": 60
+    },
+    "thumbnail": {
+      "duration": 2,
+      "fps" : 16,
+      "resize": {
+        "width": 320,
+        "height": 240
+      }
+    }
+  },
+  "qiniu": {
+    "ak": "oSIae2sZ5gLi2MVW6VOsLPr3GoW8RFZiopYNXYon",
+    "sk": "a5mqSXohWcu49gaflxq7w6gqP40jIdhYQ-Yd27qG",
+    "zone" : "Zone_z0",
+    "bucket": "suona-cut-resouce",
+    "file_name_hash":true,
+    "feimu": {
+      "zone": "Zone_z0",
+      "bucket" : {
+        "cut" : "feimu-cut",
+        "jpg" : "feimu-cut",
+        "gif" : "feimu-cut"
+      }
+    }
+  },
+  "schedule": {
+    "instance_id": 5470,
+    "noVideo": {
+      "enabled" : true,
+      "cron": "*/1 * * * *",
+      "querylimit": 10,
+      "maplimit": 5
+    },
+    "uploadACRCloud" : {
+      "enabled" : true,
+      "cron": "*/5 * * * *",
+      "querylimit": 5,
+      "maplimit": 5
+    },
+    "resize": {
+      "enabled" : true,
+      "cron": "*/2 * * * *",
+      "querylimit": 5,
+      "maplimit": 2
+    },
+    "cut": {
+      "enabled" : true,
+      "cron": "*/1 * * * *",
+      "querylimit": 1,
+      "maplimit": 1,
+      "cutlimit": 5
+    },
+    "uploadQiniu": {
+      "enabled" :true,
+      "cron": "*/1 * * * *",
+      "querylimit": 10,
+      "maplimit": 5
+    },
+    "feimuCut": {
+      "enabled": false,
+      "cron": "*/2 * * * *",
+      "querylimit": 10,
+      "maplimit": 5
+    },
+    "uploadFeimuCut": {
+      "enabled": false,
+      "cron": "*/1 * * * *",
+      "querylimit": 5,
+      "maplimit": 5
+    }
+  },
+  "server": {
+    "host": "http://tvsonar.hryunxiao.com/",
+    "api": {
+      "api_episode_list": "cms/api/episode/list",
+      "api_login": "cms/api/login",
+      "api_producer_selectProducerById": "cms/api/producer/selectProducerById",
+      "api_episode_updateEpisodeName":"cms/api/episode/updateEpisodeName"
+    }
+  }
+}

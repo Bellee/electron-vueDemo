@@ -1,0 +1,121 @@
+<template>
+  <div id="list-tab-page">
+      <el-tabs v-model="activeName" @tab-click="handleClick">
+        <el-tab-pane label="全部视频（10）" name="first">
+             <div class="search-input">
+              <el-input
+                placeholder="请输入片名搜索"
+                suffix-icon="el-icon-search">
+              </el-input>
+            </div>
+            <file-list></file-list>
+            <file-page></file-page>
+        </el-tab-pane>
+        <el-tab-pane label="待上传（5）" name="second">
+          <connection></connection>
+          <div class="search-input">
+              <el-input
+                placeholder="搜索"
+                suffix-icon="el-icon-search">
+              </el-input>
+            </div>
+          <file-wait></file-wait>
+        </el-tab-pane>
+        <el-tab-pane label="上传中（5）" name="third">
+          <div class="search-input">
+              <el-input
+                placeholder="搜索"
+                suffix-icon="el-icon-search">
+              </el-input>
+            </div>
+          <file-uploading></file-uploading>
+          <file-page></file-page>
+        </el-tab-pane>
+        <el-tab-pane label="上传异常（1）" name="fourth">
+          <div class="search-input">
+              <el-input
+                placeholder="搜索"
+                suffix-icon="el-icon-search">
+              </el-input>
+            </div>
+          <file-unusual></file-unusual>
+          <file-page></file-page>
+        </el-tab-pane>
+        <el-tab-pane label="未通过（2）" name="fifth">
+          <div class="search-input">
+              <el-input
+                placeholder="搜索"
+                suffix-icon="el-icon-search">
+              </el-input>
+            </div>
+            <file-unpass></file-unpass>
+            <file-page></file-page>
+        </el-tab-pane>
+      </el-tabs>
+  </div>
+</template>
+<script>
+  import FileList from '../components/FileList'
+  import FileWait from '../components/FileWait'
+  import FilePage from '../components/FilePage'
+  import Connection from '../components/Connection'
+  import FileUnpass from '../components/FileUnpass'
+  import FileUnusual from '../components/FileUnusual'
+  import FileUploading from '../components/FileUploading'
+
+  export default {
+    name: 'list-tab',
+    components: {FileList, FilePage, FileWait, Connection, FileUploading, FileUnpass, FileUnusual},
+    data () {
+      return {
+        activeName: 'first'
+
+      }
+    },
+    methods: {
+      handleClick (tab, event) {
+        console.log(tab, event)
+      },
+      showImage () {
+        console.log('hhhhhh')
+      }
+    }
+  }
+</script>
+
+<style>
+#list-tab-page{
+  background: #fff;
+  margin-left: 12.3vw;
+  padding-left: 2.5vw;
+  padding-top: 60px;
+  padding-right: 2.5vw;
+}
+
+.search-input { 
+  position: absolute;
+  top: -5vw;
+  right: 0;
+  z-index: 10;
+   
+}
+
+.el-tabs__content{
+  overflow: visible;
+}
+
+.el-tabs__header{
+  height: 4vw;
+}
+
+.search-input .el-input__inner{
+  height: 2.5vw;
+  line-height: 2.5vw;
+  width: 16vw;
+  font-size: 14px;
+}
+
+.search-input .el-input__icon{
+  line-height: normal;
+}
+</style>

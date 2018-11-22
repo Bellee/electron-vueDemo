@@ -1,0 +1,93 @@
+<template>
+  <div id="list-tab-page">
+      <el-tabs v-model="activeName" @tab-click="handleClick">
+        <el-tab-pane label="全部视频（10）" name="filelist">
+        </el-tab-pane>
+        <el-tab-pane label="待上传（5）" name="filewait">
+          <connection></connection>
+        </el-tab-pane>
+        <el-tab-pane label="上传中（5）" name="fileuploading">
+        </el-tab-pane>
+        <el-tab-pane label="上传异常（1）" name="fileunusual">
+        </el-tab-pane>
+        <el-tab-pane label="未通过（2）" name="fileunpass">
+        </el-tab-pane>
+      </el-tabs>
+      <router-view></router-view>
+  </div>
+</template>
+<script>
+  import FileList from '../components/FileList'
+  import FilePage from '../components/FilePage'
+  import Connection from '../components/Connection'
+  import FileWait from '../components/FileWait'
+  import FileUnpass from '../components/FileUnpass'
+  import FileUnusual from '../components/FileUnusual'
+  import FileUploading from '../components/FileUploading'
+
+  export default {
+    name: 'list-tab',
+    components: {FileList, FilePage, Connection, FileWait, FileUploading, FileUnpass, FileUnusual},
+    data () {
+      return {
+        activeName: 'filelist',
+        producerId: this.$route.query.producerId
+      }
+    },
+    created() {
+      this.$router.push({
+        path: this.activeName,
+        query: {producerId: this.producerId}
+      })
+    },
+    methods: {
+      handleClick (tab, event) {
+        // console.log(tab, event)
+        this.$router.push({
+          path: this.activeName,
+          query: {producerId: this.producerId}
+        })
+      },
+      showImage () {
+        console.log('hhhhhh')
+      }
+    }
+  }
+</script>
+
+<style>
+#list-tab-page{
+  background: #fff;
+  height: 100%;
+  margin-left: 6.66rem;
+  padding-left: 1.33rem;
+  padding-top: 0.2rem;
+  padding-right: 1.33rem;
+}
+
+.search-input { 
+  position: absolute;
+  top: 5rem;
+  right: 1.4rem;
+  z-index: 10;
+}
+
+.el-tabs__content{
+  overflow: visible;
+}
+
+.el-tabs__header{
+  height: 2.2rem;
+}
+
+.search-input .el-input__inner{
+  height: 1.33rem;
+  line-height: 1.33rem;
+  width: 8.66rem;
+  font-size: 0.58rem;
+}
+
+.search-input .el-input__icon{
+  line-height: normal;
+}
+</style>
